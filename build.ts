@@ -10,14 +10,46 @@ interface ParsedMarkdown {
 }
 
 class SimpleMarkdownParser {
-  parse(markdown: string): string {
+  private imagesToCopy: Array<{source: string, dest: string, relativePath: string}> = [];
+
+  parse(markdown: string, sourceDir: string, outputPath: string): string {
     return markdown
       .replace(/^# (.+)$/gm, '<h1>$1</h1>')
       .replace(/^## (.+)$/gm, '<h2>$1</h2>')
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^#### (.+)$/gm, '<h4>$1</h4>')
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+        // Clean up the source path (remove quotes)
+        const cleanSrc = src.replace(/["']/g, '');
+        
+        // Handle relative paths starting with ./ 
+        if (cleanSrc.startsWith('./')) {
+          const imageName = basename(cleanSrc.substring(2));
+          const sourcePath = join(sourceDir, imageName);
+          
+          // Calculate relative path from output location to assets directory
+          const outputDir = dirname(outputPath);
+          const relativeDepth = outputPath.split('/').length - 2; // subtract 1 for dist, 1 for filename
+          const relativePath = '../'.repeat(relativeDepth) + 'assets/' + imageName;
+          const destPath = join('dist/assets', imageName);
+          
+          // Store for copying later
+          this.imagesToCopy.push({
+            source: sourcePath,
+            dest: destPath,
+            relativePath: relativePath
+          });
+          
+          return `<img src="${relativePath}" alt="${alt}">`;
+        }
+        
+        // For absolute URLs, keep as-is
+        return `<img src="${cleanSrc}" alt="${alt}">`;
+      })
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+      .replace(/^> (.+)$/gm, '<blockquote-line>$1</blockquote-line>')
       .replace(/^- (.+)$/gm, '<li>$1</li>')
       .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
       .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
@@ -33,6 +65,18 @@ class SimpleMarkdownParser {
       .join('\n')
       .replace(/<p><h([1-6])>/g, '<h$1>')
       .replace(/<\/h([1-6])><\/p>/g, '</h$1>')
+      .replace(/<p><img/g, '<img')
+      .replace(/><\/p>/g, '>')
+      .replace(/<p><blockquote-line>/g, '<blockquote-line>')
+      .replace(/<\/blockquote-line><\/p>/g, '</blockquote-line>')
+      .replace(/(<blockquote-line>.*<\/blockquote-line>)/s, (match) => {
+        const lines = match.match(/<blockquote-line>(.*?)<\/blockquote-line>/g);
+        if (lines) {
+          const content = lines.map(line => line.replace(/<\/?blockquote-line>/g, '')).join('<br>');
+          return `<blockquote>${content}</blockquote>`;
+        }
+        return match;
+      })
       .replace(/<p><ul>/g, '<ul>')
       .replace(/<\/ul><\/p>/g, '</ul>')
       .replace(/<p><ol>/g, '<ol>')
@@ -42,18 +86,27 @@ class SimpleMarkdownParser {
       .replace(/<p><\/p>/g, '');
   }
 
-  parseFile(filePath: string): ParsedMarkdown {
+  parseFile(filePath: string, outputPath: string = ''): ParsedMarkdown {
     const content = readFileSync(filePath, 'utf-8');
     const lines = content.split('\n');
     const firstLine = lines[0];
     const title = firstLine.startsWith('# ') ? firstLine.substring(2) : basename(filePath, '.md');
     const slug = basename(filePath, '.md');
+    const sourceDir = dirname(filePath);
     
     return {
       title,
-      content: this.parse(content),
+      content: this.parse(content, sourceDir, outputPath),
       slug
     };
+  }
+
+  getImagesToCopy(): Array<{source: string, dest: string, relativePath: string}> {
+    return this.imagesToCopy;
+  }
+
+  clearImagesToCopy(): void {
+    this.imagesToCopy = [];
   }
 }
 
@@ -69,6 +122,33 @@ class StaticSiteBuilder {
     if (!existsSync(this.distDir)) {
       mkdirSync(this.distDir, { recursive: true });
     }
+    // Ensure assets directory exists
+    const assetsDir = join(this.distDir, 'assets');
+    if (!existsSync(assetsDir)) {
+      mkdirSync(assetsDir, { recursive: true });
+    }
+  }
+
+  private copyImages() {
+    const imagesToCopy = this.parser.getImagesToCopy();
+    for (const image of imagesToCopy) {
+      if (existsSync(image.source)) {
+        try {
+          // Ensure destination directory exists
+          const destDir = dirname(image.dest);
+          if (!existsSync(destDir)) {
+            mkdirSync(destDir, { recursive: true });
+          }
+          copyFileSync(image.source, image.dest);
+          console.log(`Copied image: ${image.source} -> ${image.dest}`);
+        } catch (error) {
+          console.warn(`Warning: Could not copy image ${image.source} to ${image.dest}: ${error}`);
+        }
+      } else {
+        console.warn(`Warning: Image not found: ${image.source}`);
+      }
+    }
+    this.parser.clearImagesToCopy();
   }
 
   private createTemplate(title: string, content: string, cssPath = './styles.css', scriptPath = './script.js'): string {
@@ -92,13 +172,34 @@ class StaticSiteBuilder {
     <main>
         ${content}
     </main>
+    <footer>
+        <div class="social-links">
+            <a href="https://github.com/jackrr" aria-label="GitHub" target="_blank" rel="noopener noreferrer">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+            </a>
+            <a href="https://www.linkedin.com/in/jack-ratner-1359b45a/" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+            </a>
+            <a href="https://bsky.app/profile/jackratner.bsky.social" aria-label="Bluesky" target="_blank" rel="noopener noreferrer">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.5c-2.4 2.8-5.8 8.3-6.9 11.1-.6 1.5-.9 2.8-.9 3.9 0 2.2 1.8 4 4 4s4-1.8 4-4c0-1.1-.3-2.4-.9-3.9C10.2 10.8 9.4 5.3 12 2.5z"/>
+                    <path d="M12 2.5c2.4 2.8 5.8 8.3 6.9 11.1.6 1.5.9 2.8.9 3.9 0 2.2-1.8 4-4 4s-4-1.8-4-4c0-1.1.3-2.4.9-3.9C13.8 10.8 14.6 5.3 12 2.5z"/>
+                    <circle cx="12" cy="12" r="1.5"/>
+                </svg>
+            </a>
+        </div>
+    </footer>
     <script src="${scriptPath}"></script>
 </body>
 </html>`;
   }
 
   buildHomepage() {
-    const homepage = this.parser.parseFile('content/homepage.md');
+    const homepage = this.parser.parseFile('content/homepage.md', 'dist/index.html');
     
     // Add recent blog posts
     const blogPosts = this.getBlogPosts();
@@ -422,8 +523,31 @@ class StaticSiteBuilder {
         padding: 0 1rem;
       }
 
-      h1, h2, h3 {
+      h1, h2, h3, h4 {
         margin-bottom: 1rem;
+        color: var(--text-color);
+      }
+
+      h4 {
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+        margin: 1rem 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      blockquote {
+        margin: 1.5rem 0;
+        padding: 1rem 1.5rem;
+        border-left: 4px solid var(--link-color);
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 0 8px 8px 0;
+        font-style: italic;
         color: var(--text-color);
       }
 
@@ -650,6 +774,44 @@ class StaticSiteBuilder {
         }
       }
 
+      /* Footer Styles */
+      footer {
+        margin-top: 4rem;
+        padding: 2rem 1rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--bg-color);
+      }
+
+      .social-links {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .social-links a {
+        color: var(--text-color);
+        transition: color 0.3s ease, transform 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.05);
+      }
+
+      .social-links a:hover {
+        color: var(--link-color);
+        transform: translateY(-2px);
+        background: rgba(0, 0, 0, 0.1);
+      }
+
+      .social-links svg {
+        width: 24px;
+        height: 24px;
+      }
+
       @media (max-width: 480px) {
         header {
           padding: 0.5rem;
@@ -658,6 +820,20 @@ class StaticSiteBuilder {
         nav a {
           margin-right: 0.5rem;
           font-size: 0.9rem;
+        }
+
+        footer {
+          margin-top: 2rem;
+          padding: 1.5rem 0.5rem;
+        }
+
+        .social-links {
+          gap: 1rem;
+        }
+
+        .social-links svg {
+          width: 20px;
+          height: 20px;
         }
       }
     `;
@@ -738,7 +914,11 @@ class StaticSiteBuilder {
     
     const files = readdirSync(blogDir)
       .filter(file => file.endsWith('.md'))
-      .map(file => this.parser.parseFile(join(blogDir, file)));
+      .map(file => {
+        const slug = basename(file, '.md');
+        const outputPath = `dist/updates/${slug}.html`;
+        return this.parser.parseFile(join(blogDir, file), outputPath);
+      });
     
     return files;
   }
@@ -749,7 +929,11 @@ class StaticSiteBuilder {
     
     const files = readdirSync(projectsDir)
       .filter(file => file.endsWith('.md'))
-      .map(file => this.parser.parseFile(join(projectsDir, file)));
+      .map(file => {
+        const slug = basename(file, '.md');
+        const outputPath = `dist/projects/${slug}.html`;
+        return this.parser.parseFile(join(projectsDir, file), outputPath);
+      });
     
     return files;
   }
@@ -764,6 +948,9 @@ class StaticSiteBuilder {
     this.buildPhotosIndex();
     this.buildStyles();
     this.buildScript();
+    
+    // Copy all images that were referenced in markdown
+    this.copyImages();
     
     console.log('Build complete! Files generated in dist/');
   }
