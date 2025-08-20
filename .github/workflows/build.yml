@@ -34,7 +34,17 @@ jobs:
     
     - name: Commit and push dist directory
       run: |
+        # Get the current branch name
+        BRANCH_NAME=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+        echo "Current branch: $BRANCH_NAME"
+        
+        # Checkout the branch (in case we're in detached HEAD)
+        git checkout $BRANCH_NAME
+        
+        # Stage dist changes
         git add dist/
+        
+        # Commit and push if there are changes
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
@@ -43,7 +53,7 @@ jobs:
           🤖 Generated with [Claude Code](https://claude.ai/code)
           
           Co-Authored-By: Claude <noreply@anthropic.com>"
-          git push
+          git push origin $BRANCH_NAME
         fi
     
     - name: Upload build artifacts
