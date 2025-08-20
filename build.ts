@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'fs';
+import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, copyFileSync } from 'fs';
 import { join, basename, dirname, extname } from 'path';
 
 interface ParsedMarkdown {
@@ -181,16 +181,158 @@ class StaticSiteBuilder {
   }
 
   buildPhotosIndex() {
-    // Handle case where photos directory doesn't exist
-    const photosExist = existsSync('content/photos');
-    const content = photosExist ? 
-      '<h1>Photo Galleries</h1><p>Photo galleries will be implemented when content/photos directory is available.</p>' :
-      '<h1>Photo Galleries</h1><p>No photo galleries available yet.</p>';
+    const photosDir = 'content/photos';
+    mkdirSync(join(this.distDir, 'photos'), { recursive: true });
+    
+    if (!existsSync(photosDir)) {
+      const content = '<h1>Photo Galleries</h1><p>No photo galleries available yet.</p>';
+      const html = this.createTemplate('Photo Galleries', content, '../styles.css', '../script.js');
+      writeFileSync(join(this.distDir, 'photos', 'index.html'), html);
+      return;
+    }
+
+    const galleries = this.getPhotoGalleries();
+    
+    if (galleries.length === 0) {
+      const content = '<h1>Photo Galleries</h1><p>No photo galleries found in content/photos.</p>';
+      const html = this.createTemplate('Photo Galleries', content, '../styles.css', '../script.js');
+      writeFileSync(join(this.distDir, 'photos', 'index.html'), html);
+      return;
+    }
+
+    // Build photo galleries index
+    const content = `
+      <h1>Photo Galleries</h1>
+      ${galleries.map(gallery => `
+        <article class="gallery-preview">
+          <h2><a href="/photos/${gallery.name}">${gallery.displayName}</a></h2>
+          <p>${gallery.imageCount} photos</p>
+          ${gallery.previewImage ? `<img src="/photos/${gallery.name}/${gallery.previewImage}" alt="${gallery.displayName} preview" class="gallery-preview-image">` : ''}
+        </article>
+      `).join('')}
+    `;
     
     const html = this.createTemplate('Photo Galleries', content, '../styles.css', '../script.js');
-    
-    mkdirSync(join(this.distDir, 'photos'), { recursive: true });
     writeFileSync(join(this.distDir, 'photos', 'index.html'), html);
+
+    // Build individual gallery pages
+    this.buildPhotoGalleries(galleries);
+  }
+
+  buildPhotoGalleries(galleries: Array<{name: string, displayName: string, images: string[], imageCount: number}>) {
+    galleries.forEach(gallery => {
+      const galleryContent = `
+        <h1>${gallery.displayName}</h1>
+        <div class="photo-gallery">
+          ${gallery.images.map((image, index) => `
+            <div class="photo-item">
+              <a href="/photos/${gallery.name}/${this.getImageNameWithoutExt(image)}" class="photo-link">
+                <img src="/photos/${gallery.name}/${image}" alt="${image}" loading="lazy" class="gallery-image">
+              </a>
+            </div>
+          `).join('')}
+        </div>
+        <a href="/photos" class="back-link">← Back to all galleries</a>
+      `;
+      
+      const html = this.createTemplate(gallery.displayName, galleryContent, '../../styles.css', '../../script.js');
+      
+      const galleryDir = join(this.distDir, 'photos', gallery.name);
+      mkdirSync(galleryDir, { recursive: true });
+      
+      // Copy images to dist directory and create individual photo pages
+      gallery.images.forEach((image, index) => {
+        const sourcePath = join('content/photos', gallery.name, image);
+        const destPath = join(galleryDir, image);
+        
+        // Copy image file
+        if (existsSync(sourcePath)) {
+          try {
+            copyFileSync(sourcePath, destPath);
+          } catch (error) {
+            console.warn(`Warning: Could not copy ${sourcePath} to ${destPath}`);
+          }
+        }
+        
+        // Create individual photo page
+        this.buildIndividualPhotoPage(gallery, image, index);
+      });
+      
+      writeFileSync(join(galleryDir, 'index.html'), html);
+    });
+  }
+
+  buildIndividualPhotoPage(gallery: {name: string, displayName: string, images: string[]}, image: string, currentIndex: number) {
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : gallery.images.length - 1;
+    const nextIndex = currentIndex < gallery.images.length - 1 ? currentIndex + 1 : 0;
+    const prevImage = gallery.images[prevIndex];
+    const nextImage = gallery.images[nextIndex];
+    
+    const photoContent = `
+      <div class="photo-viewer" data-gallery="${gallery.name}" data-current="${currentIndex}" data-total="${gallery.images.length}">
+        <div class="photo-nav">
+          <a href="/photos/${gallery.name}" class="back-to-gallery">← Back to ${gallery.displayName}</a>
+          <div class="photo-counter">${currentIndex + 1} / ${gallery.images.length}</div>
+        </div>
+        
+        <div class="photo-display">
+          <a href="/photos/${gallery.name}/${this.getImageNameWithoutExt(prevImage)}" class="nav-prev" aria-label="Previous photo">
+            <span>‹</span>
+          </a>
+          
+          <div class="photo-main">
+            <img src="/photos/${gallery.name}/${image}" alt="${image}" class="full-photo">
+          </div>
+          
+          <a href="/photos/${gallery.name}/${this.getImageNameWithoutExt(nextImage)}" class="nav-next" aria-label="Next photo">
+            <span>›</span>
+          </a>
+        </div>
+        
+        <div class="photo-info">
+          <h2>${image}</h2>
+        </div>
+      </div>
+    `;
+    
+    const html = this.createTemplate(`${image} - ${gallery.displayName}`, photoContent, '../../../styles.css', '../../../script.js');
+    
+    const photoFileName = this.getImageNameWithoutExt(image) + '.html';
+    const photoPath = join(this.distDir, 'photos', gallery.name, photoFileName);
+    writeFileSync(photoPath, html);
+  }
+
+  private getImageNameWithoutExt(filename: string): string {
+    return basename(filename, extname(filename));
+  }
+
+  private getPhotoGalleries() {
+    const photosDir = 'content/photos';
+    if (!existsSync(photosDir)) return [];
+    
+    const galleries = [];
+    const entries = readdirSync(photosDir, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const galleryPath = join(photosDir, entry.name);
+        const images = readdirSync(galleryPath)
+          .filter(file => /\.(jpg|jpeg|png|gif|webp)$/i.test(file))
+          .sort();
+        
+        if (images.length > 0) {
+          galleries.push({
+            name: entry.name,
+            displayName: entry.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            images,
+            imageCount: images.length,
+            previewImage: images[0] // Use first image as preview
+          });
+        }
+      }
+    }
+    
+    return galleries;
   }
 
   buildStyles() {
@@ -308,6 +450,163 @@ class StaticSiteBuilder {
         border-bottom: 1px solid var(--border-color);
       }
 
+      /* Photo Gallery Styles */
+      .gallery-preview {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+      }
+
+      .gallery-preview-image {
+        width: 200px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+      }
+
+      .photo-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .photo-item {
+        position: relative;
+        aspect-ratio: 4/3;
+        overflow: hidden;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+      }
+
+      .gallery-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+
+      .photo-link:hover .gallery-image {
+        transform: scale(1.05);
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-top: 2rem;
+        color: var(--link-color);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+
+      /* Individual Photo Viewer Styles */
+      .photo-viewer {
+        max-width: 100%;
+      }
+
+      .photo-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .back-to-gallery {
+        color: var(--link-color);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .back-to-gallery:hover {
+        text-decoration: underline;
+      }
+
+      .photo-counter {
+        color: var(--text-color);
+        font-size: 0.9rem;
+        opacity: 0.8;
+      }
+
+      .photo-display {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        min-height: 70vh;
+      }
+
+      .photo-main {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .full-photo {
+        max-width: 100%;
+        max-height: 70vh;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .nav-prev, .nav-next {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+        background: rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+        border-radius: 50%;
+        color: var(--text-color);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+      }
+
+      .nav-prev span, .nav-next span {
+        font-size: 3rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        transform: translateY(-0.12em);
+      }
+
+      .nav-prev:hover, .nav-next:hover {
+        background: rgba(0, 0, 0, 0.2);
+        transform: scale(1.1);
+      }
+
+      .photo-info {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+        margin-top: 1rem;
+      }
+
+      .photo-info h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: var(--text-color);
+      }
+
       @media (max-width: 768px) {
         nav {
           flex-direction: column;
@@ -316,6 +615,38 @@ class StaticSiteBuilder {
         
         main {
           padding: 0 0.5rem;
+        }
+
+        .photo-gallery {
+          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        }
+
+        .gallery-preview-image {
+          width: 150px;
+          height: 112px;
+        }
+
+        .photo-display {
+          flex-direction: column;
+          gap: 0.5rem;
+          min-height: 50vh;
+        }
+
+        .nav-prev, .nav-next {
+          width: 50px;
+          height: 50px;
+        }
+
+        .nav-prev span, .nav-next span {
+          font-size: 2rem;
+          transform: translateY(-0.08em);
+        }
+
+        .photo-nav {
+          flex-direction: column;
+          gap: 0.5rem;
+          align-items: center;
+          text-align: center;
         }
       }
 
@@ -359,6 +690,43 @@ class StaticSiteBuilder {
         html.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
       });
+
+      // Photo navigation with arrow keys
+      const photoViewer = document.querySelector('.photo-viewer');
+      if (photoViewer) {
+        const galleryName = photoViewer.dataset.gallery;
+        const currentIndex = parseInt(photoViewer.dataset.current);
+        const totalImages = parseInt(photoViewer.dataset.total);
+        
+        // Get navigation URLs
+        const prevButton = document.querySelector('.nav-prev');
+        const nextButton = document.querySelector('.nav-next');
+        const prevUrl = prevButton ? prevButton.href : null;
+        const nextUrl = nextButton ? nextButton.href : null;
+        
+        // Arrow key navigation
+        document.addEventListener('keydown', (event) => {
+          switch(event.key) {
+            case 'ArrowLeft':
+              event.preventDefault();
+              if (prevUrl) {
+                window.location.href = prevUrl;
+              }
+              break;
+            case 'ArrowRight':
+              event.preventDefault();
+              if (nextUrl) {
+                window.location.href = nextUrl;
+              }
+              break;
+            case 'Escape':
+              event.preventDefault();
+              // Go back to gallery
+              window.location.href = '/photos/' + galleryName;
+              break;
+          }
+        });
+      }
     `;
     
     writeFileSync(join(this.distDir, 'script.js'), js);

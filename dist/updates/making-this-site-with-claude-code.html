@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Making this site with Claude Code</title>
+    <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/updates">Blog</a>
+            <a href="/photos">Photos</a>
+            <button id="theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+        </nav>
+    </header>
+    <main>
+        <h1>Making this site with Claude Code</h1>
+
+<h2>Why</h2>
+
+<ul><ul><li>I feel I'm being left behind by all this AI hype.</li></ul></ul>
+<p>-</p>
+
+<h2>What I did</h2>
+
+<h3>1. Made a thorough set of instructions</h3>
+
+<h2>Problems</h2>
+
+<h3>Imagemagick resize</h3>
+
+<p>Imagemagick script was failing. Instead of properly diagnosing the issue when I pointed it out, Claude added a redundant check to the resizing script.</p>
+
+<p>I got around this by manually generating a test command and comparing that to what Claude was invoking. It became clear that claude was appending an extraneous ">" character in the resize option:</p>
+<p>```</p>
+<p>const command = `magick "${sourcePath}" -resize ${maxWidth}x${maxHeight}> -quality ${quality} "${destPath}"`;</p>
+<p>```</p>
+
+<p>When I pointed that out to Claude, it strangely added an escape sequence `-resize ${maxWidth}x${maxHeight}\\>`:</p>
+<p>!<a href=""./claude-resize-escape-wut.png"">Escape sequence wut</a></p>
+
+<h3>Vertical centering icons</h3>
+
+<p>I asked the agent to add arrow-key driven navigation to the photo gallery. Amazingly it added a working version with minimal prompting. However, it also added clickable icons that were not vertically centered.</p>
+
+<p>It's a good reminder that Claude Code can't "see" the page and make aesthetic judgements. Pixel pushing is Claude is a rough feedback cycle and you're better off diving into the codebase for this sort of tweak.</p>
+
+    </main>
+    <script src="../script.js"></script>
+</body>
+</html>

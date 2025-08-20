@@ -22,4 +22,41 @@
         html.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
       });
+
+      // Photo navigation with arrow keys
+      const photoViewer = document.querySelector('.photo-viewer');
+      if (photoViewer) {
+        const galleryName = photoViewer.dataset.gallery;
+        const currentIndex = parseInt(photoViewer.dataset.current);
+        const totalImages = parseInt(photoViewer.dataset.total);
+        
+        // Get navigation URLs
+        const prevButton = document.querySelector('.nav-prev');
+        const nextButton = document.querySelector('.nav-next');
+        const prevUrl = prevButton ? prevButton.href : null;
+        const nextUrl = nextButton ? nextButton.href : null;
+        
+        // Arrow key navigation
+        document.addEventListener('keydown', (event) => {
+          switch(event.key) {
+            case 'ArrowLeft':
+              event.preventDefault();
+              if (prevUrl) {
+                window.location.href = prevUrl;
+              }
+              break;
+            case 'ArrowRight':
+              event.preventDefault();
+              if (nextUrl) {
+                window.location.href = nextUrl;
+              }
+              break;
+            case 'Escape':
+              event.preventDefault();
+              // Go back to gallery
+              window.location.href = '/photos/' + galleryName;
+              break;
+          }
+        });
+      }
     

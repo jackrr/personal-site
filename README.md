@@ -33,15 +33,19 @@ The site uses a custom static site generator implemented in TypeScript (`build.t
 - `bun run build` - Build the static site to `./dist/`
 - `bun run dev` - Build and serve locally
 - `bun run serve` - Serve the built site
+- `bun run process-photos <source-dir> <gallery-name>` - Process and resize photos for galleries
 
 ## Directory Structure
 
 ```
 ├── build.ts          # Main build script
+├── process-photos.ts # Photo processing and resizing script
+├── server.ts         # Development server
 ├── content/          # Source content (read-only)
 │   ├── homepage.md
 │   ├── blog/
-│   └── projects/
+│   ├── projects/
+│   └── photos/       # Photo galleries (auto-generated)
 ├── dist/             # Generated static site
 ├── .github/workflows/ # GitHub Actions
 └── package.json      # Project configuration
@@ -54,9 +58,37 @@ The site uses a custom static site generator implemented in TypeScript (`build.t
 - ✅ High contrast accessibility
 - ✅ Blog with individual post pages
 - ✅ Projects showcase
-- ✅ Photo gallery support (when content available)
+- ✅ Photo galleries with automatic image processing and resizing
 - ✅ GitHub Actions CI/CD
 - ✅ Zero external dependencies for runtime
+
+## Photo Galleries
+
+The site includes a powerful photo gallery system:
+
+### Processing Photos
+```bash
+# Basic usage
+bun run process-photos ~/Photos/vacation-2024 vacation-2024
+
+# With custom dimensions and quality
+bun run process-photos ~/Photos/event my-event 800 600 75
+```
+
+### Features
+- **Automatic resizing**: Images resized to web-friendly dimensions (default: 1200x800px)
+- **Quality optimization**: JPEG quality optimization (default: 85%)
+- **Smart copying**: Only JPEG files are processed, other files ignored
+- **Original preservation**: Source files are never modified
+- **ImageMagick integration**: Automatic detection and use of ImageMagick for resizing
+- **Fallback support**: Graceful fallback to copying without resize if ImageMagick unavailable
+
+### Gallery Structure
+- Gallery index at `/photos` shows all available galleries
+- Individual galleries at `/photos/<gallery-name>` with responsive grid layout  
+- Mobile-optimized viewing with lazy loading
+- Hover effects and smooth image scaling
+- Consistent theme integration with dark/light mode support
 
 ## For AI Agents
 
