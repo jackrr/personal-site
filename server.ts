@@ -9,11 +9,28 @@ const server = Bun.serve({
     // Default to index.html for directory requests
     if (filePath === '/' || filePath.endsWith('/')) {
       filePath += 'index.html';
-    }
-    
-    // Add .html extension if no extension provided
-    if (!filePath.includes('.')) {
-      filePath += '.html';
+    } else if (!filePath.includes('.')) {
+      // For paths like /updates or /photos, try the directory first
+      const dirIndexPath = `${filePath}/index.html`;
+      const dirIndexFile = Bun.file(`./dist${dirIndexPath}`);
+      
+      return dirIndexFile.exists().then(dirExists => {
+        if (dirExists) {
+          return new Response(dirIndexFile);
+        } else {
+          // Try adding .html extension
+          const htmlPath = `${filePath}.html`;
+          const htmlFile = Bun.file(`./dist${htmlPath}`);
+          
+          return htmlFile.exists().then(htmlExists => {
+            if (htmlExists) {
+              return new Response(htmlFile);
+            } else {
+              return new Response("Not Found", { status: 404 });
+            }
+          });
+        }
+      });
     }
     
     const file = Bun.file(`./dist${filePath}`);
@@ -22,15 +39,7 @@ const server = Bun.serve({
       if (exists) {
         return new Response(file);
       } else {
-        // Try without .html extension
-        const fileWithoutExt = Bun.file(`./dist${url.pathname}`);
-        return fileWithoutExt.exists().then(existsWithoutExt => {
-          if (existsWithoutExt) {
-            return new Response(fileWithoutExt);
-          } else {
-            return new Response("Not Found", { status: 404 });
-          }
-        });
+        return new Response("Not Found", { status: 404 });
       }
     });
   },

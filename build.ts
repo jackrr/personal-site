@@ -71,7 +71,7 @@ class StaticSiteBuilder {
     }
   }
 
-  private createTemplate(title: string, content: string, cssPath = './styles.css'): string {
+  private createTemplate(title: string, content: string, cssPath = './styles.css', scriptPath = './script.js'): string {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -92,7 +92,7 @@ class StaticSiteBuilder {
     <main>
         ${content}
     </main>
-    <script src="./script.js"></script>
+    <script src="${scriptPath}"></script>
 </body>
 </html>`;
   }
@@ -115,6 +115,15 @@ class StaticSiteBuilder {
       </section>
     `;
 
+    // Add photos section
+    const photosSection = `
+      <section class="photos">
+        <h2>Photo Galleries</h2>
+        <p>Photo galleries will be available soon.</p>
+        <a href="/photos">View all galleries →</a>
+      </section>
+    `;
+
     // Add projects section
     const projects = this.getProjects();
     const projectsSection = `
@@ -128,7 +137,7 @@ class StaticSiteBuilder {
       </section>
     `;
 
-    const fullContent = homepage.content + blogSection + projectsSection;
+    const fullContent = homepage.content + blogSection + photosSection + projectsSection;
     const html = this.createTemplate(homepage.title, fullContent);
     
     writeFileSync(join(this.distDir, 'index.html'), html);
@@ -145,7 +154,7 @@ class StaticSiteBuilder {
       `).join('')}
     `;
     
-    const html = this.createTemplate('Blog Posts', content, '../styles.css');
+    const html = this.createTemplate('Blog Posts', content, '../styles.css', '../script.js');
     
     mkdirSync(join(this.distDir, 'updates'), { recursive: true });
     writeFileSync(join(this.distDir, 'updates', 'index.html'), html);
@@ -155,7 +164,7 @@ class StaticSiteBuilder {
     const blogPosts = this.getBlogPosts();
     
     blogPosts.forEach(post => {
-      const html = this.createTemplate(post.title, post.content, '../styles.css');
+      const html = this.createTemplate(post.title, post.content, '../styles.css', '../script.js');
       writeFileSync(join(this.distDir, 'updates', `${post.slug}.html`), html);
     });
   }
@@ -166,7 +175,7 @@ class StaticSiteBuilder {
     mkdirSync(join(this.distDir, 'projects'), { recursive: true });
     
     projects.forEach(project => {
-      const html = this.createTemplate(project.title, project.content, '../styles.css');
+      const html = this.createTemplate(project.title, project.content, '../styles.css', '../script.js');
       writeFileSync(join(this.distDir, 'projects', `${project.slug}.html`), html);
     });
   }
@@ -178,7 +187,7 @@ class StaticSiteBuilder {
       '<h1>Photo Galleries</h1><p>Photo galleries will be implemented when content/photos directory is available.</p>' :
       '<h1>Photo Galleries</h1><p>No photo galleries available yet.</p>';
     
-    const html = this.createTemplate('Photo Galleries', content, '../styles.css');
+    const html = this.createTemplate('Photo Galleries', content, '../styles.css', '../script.js');
     
     mkdirSync(join(this.distDir, 'photos'), { recursive: true });
     writeFileSync(join(this.distDir, 'photos', 'index.html'), html);
