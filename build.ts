@@ -45,9 +45,10 @@ class SimpleYamlParser {
 
 class SimpleMarkdownParser {
   private imagesToCopy: Array<{source: string, dest: string, relativePath: string}> = [];
+  private codeBlockPlaceholders: Map<string, string> = new Map();
 
   parse(markdown: string, sourceDir: string, outputPath: string): string {
-    return markdown
+    let result = markdown
       .replace(/^# (.+)$/gm, '<h1>$1</h1>')
       .replace(/^## (.+)$/gm, '<h2>$1</h2>')
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')
@@ -83,7 +84,12 @@ class SimpleMarkdownParser {
         // For absolute URLs, keep as-is
         return `<img src="${cleanSrc}" alt="${alt}">`;
       })
-      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      .replace(/```([\s\S]*?)```/g, (match, content) => {
+        // Use placeholder to protect from paragraph processing - avoid underscores which trigger italic processing
+        const placeholder = `ĦĦĦCODEBLOCK${Date.now()}X${Math.random().toString(36).substr(2, 9)}ĦĦĦ`;
+        this.codeBlockPlaceholders.set(placeholder, `<pre><code>${content}</code></pre>`);
+        return placeholder;
+      })
       .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -151,6 +157,19 @@ class SimpleMarkdownParser {
       .replace(/<p><li>/g, '<li>')
       .replace(/<\/li><\/p>/g, '</li>')
       .replace(/<p><\/p>/g, '');
+
+    // Restore code block placeholders
+    if (this.codeBlockPlaceholders) {
+      for (const [placeholder, content] of this.codeBlockPlaceholders) {
+        result = result.replace(new RegExp(placeholder, 'g'), content);
+      }
+      this.codeBlockPlaceholders.clear();
+    }
+
+    // Clean up paragraph tags around pre blocks
+    result = result.replace(/<p><pre>/g, '<pre>').replace(/<\/pre><\/p>/g, '</pre>');
+
+    return result;
   }
 
   parseFile(filePath: string, outputPath: string = ''): ParsedMarkdown {
@@ -834,6 +853,33 @@ ${items.map(item => `    <item>
       ul, ol {
         margin-bottom: 1rem;
         padding-left: 2rem;
+      }
+
+      pre {
+        background: var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        margin: 1rem 0;
+        overflow-x: auto;
+        max-width: 100%;
+      }
+
+      code {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.9em;
+      }
+
+      pre code {
+        background: none;
+        padding: 0;
+        white-space: pre;
+      }
+
+      :not(pre) > code {
+        background: var(--border-color);
+        padding: 0.2em 0.4em;
+        border-radius: 4px;
+        font-size: 0.85em;
       }
 
       section {
