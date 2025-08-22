@@ -88,6 +88,12 @@ There were bits and bobs I noticed were missing that I added in through promptin
 - Swipe interactions on the photo gallery for mobile
 - A navigation menu for mobile
 
+## A note on bad bosses
+
+Some of the prompting to get it "functional" involved finding and pointing out issues with the markdown transpiler. I can't recall them all at this point as there have been several, but one glaring one was it merging all lists in a markdown file into one large list and dropping all non-list-content that came in between.
+
+I blame this class of issue on the high-level decision to implement a novel markdown parser, instead of working with an pre-existing robust implementation. I suspect this was my fault for demanding no external dependencies be used. Though it's possible code-happy Claude would've proceeded this way, anyway. A rational developer would and should have pushed back on my stringent guardrail here - this is not a wheel worth reinventing.
+
 ## Overall takeaways
 
 I'm quite impressed with the product it built. Yes it looks a little tacky. Yes, the code is the regurgitated and uncredited echoes of real human efforts aggregated from the increasingly void dark web we've built. Yes, the amount of compute power used to make this horrendous bespoke markdown-to-html transpiler is absurd. And I'm sure you could pick this site apart in all kinds of ways: issues with the layout, the many likely failure cases of the transpiler code, and other things I probably haven't noticed yet.
