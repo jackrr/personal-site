@@ -8,6 +8,39 @@ interface ParsedMarkdown {
   content: string;
   slug: string;
   lastUpdated?: Date;
+  publishedAt?: Date;
+}
+
+interface GalleryMeta {
+  publishedAt?: Date;
+  description?: string;
+}
+
+class SimpleYamlParser {
+  static parseSimple(yamlContent: string): Record<string, any> {
+    const result: Record<string, any> = {};
+    const lines = yamlContent.split('\n');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const colonIndex = trimmed.indexOf(':');
+        if (colonIndex > 0) {
+          const key = trimmed.substring(0, colonIndex).trim();
+          const value = trimmed.substring(colonIndex + 1).trim();
+          
+          // Handle date parsing for published_at
+          if (key === 'published_at') {
+            result[key] = new Date(value);
+          } else {
+            result[key] = value;
+          }
+        }
+      }
+    }
+    
+    return result;
+  }
 }
 
 class SimpleMarkdownParser {
@@ -167,7 +200,7 @@ class StaticSiteBuilder {
     const blogPosts = this.getBlogPosts();
     const photoGalleries = this.getPhotoGalleries();
     
-    // Load existing feed to preserve publication dates
+    // Load existing feed to preserve publication dates for items that don't have metadata
     const existingPubDates = this.loadExistingPubDates();
     
     // Combine and sort all content by date (newest first)
@@ -178,17 +211,17 @@ class StaticSiteBuilder {
         slug: post.slug,
         url: `/blog/${post.slug}`,
         content: post.content.substring(0, 500) + '...',
-        date: this.getFileDate(join('content/blog', `${post.slug}.md`)),
-        pubDate: existingPubDates.get(`/blog/${post.slug}`) || new Date()
+        date: post.publishedAt || post.lastUpdated || new Date(),
+        pubDate: post.publishedAt || existingPubDates.get(`/blog/${post.slug}`) || new Date()
       })),
       ...photoGalleries.map(gallery => ({
         type: 'gallery',
         title: `Photo Gallery: ${gallery.displayName}`,
         slug: gallery.name,
         url: `/photos/${gallery.name}`,
-        content: `New photo gallery with ${gallery.imageCount} images.`,
-        date: this.getFileDate(join('content/photos', gallery.name)),
-        pubDate: existingPubDates.get(`/photos/${gallery.name}`) || new Date()
+        content: gallery.description || `New photo gallery with ${gallery.imageCount} images.`,
+        date: gallery.publishedAt || new Date(),
+        pubDate: gallery.publishedAt || existingPubDates.get(`/photos/${gallery.name}`) || new Date()
       }))
     ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -496,10 +529,11 @@ ${items.map(item => `    <item>
     this.buildPhotoGalleries(galleries);
   }
 
-  buildPhotoGalleries(galleries: Array<{name: string, displayName: string, images: string[], imageCount: number}>) {
+  buildPhotoGalleries(galleries: Array<{name: string, displayName: string, images: string[], imageCount: number, publishedAt?: Date, description?: string}>) {
     galleries.forEach(gallery => {
       const galleryContent = `
         <h1>${gallery.displayName}</h1>
+        ${gallery.description ? `<p class="gallery-description">${gallery.description}</p>` : ''}
         <div class="photo-gallery">
           ${gallery.images.map((image, index) => `
             <div class="photo-item">
@@ -598,18 +632,37 @@ ${items.map(item => `    <item>
           .sort();
         
         if (images.length > 0) {
+          // Read metadata from meta.yaml file
+          const metaPath = join(galleryPath, 'meta.yaml');
+          let meta: GalleryMeta = {};
+          
+          if (existsSync(metaPath)) {
+            try {
+              const metaContent = readFileSync(metaPath, 'utf-8');
+              const parsedMeta = SimpleYamlParser.parseSimple(metaContent);
+              meta = {
+                publishedAt: parsedMeta.published_at,
+                description: parsedMeta.description
+              };
+            } catch (error) {
+              console.warn(`Could not parse metadata for gallery ${entry.name}:`, error);
+            }
+          }
+          
           galleries.push({
             name: entry.name,
             displayName: entry.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
             images,
             imageCount: images.length,
-            previewImage: images[0] // Use first image as preview
+            previewImage: images[0], // Use first image as preview
+            publishedAt: meta.publishedAt || this.getFileDate(galleryPath),
+            description: meta.description
           });
         }
       }
     }
     
-    return galleries;
+    return galleries.sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0));
   }
 
   buildStyles() {
@@ -810,6 +863,14 @@ ${items.map(item => `    <item>
         object-fit: cover;
         border-radius: 4px;
         margin-top: 0.5rem;
+      }
+
+      .gallery-description {
+        font-size: 1.1rem;
+        color: var(--text-color);
+        margin: 1rem 0 2rem 0;
+        line-height: 1.5;
+        font-style: italic;
       }
 
       .photo-gallery {
@@ -1291,16 +1352,31 @@ ${items.map(item => `    <item>
         const outputPath = `dist/updates/${slug}.html`;
         const parsed = this.parser.parseFile(join(blogDir, file), outputPath);
         
-        // Extract "Last updated" date from content
+        // Read metadata from yaml file
+        const metaPath = join(blogDir, `${slug}.meta.yaml`);
+        let publishedAt: Date | undefined;
+        
+        if (existsSync(metaPath)) {
+          try {
+            const metaContent = readFileSync(metaPath, 'utf-8');
+            const meta = SimpleYamlParser.parseSimple(metaContent);
+            publishedAt = meta.published_at;
+          } catch (error) {
+            console.warn(`Could not parse metadata for ${slug}:`, error);
+          }
+        }
+        
+        // Extract "Last updated" date from content as fallback
         const lastUpdatedMatch = parsed.content.match(/_Last updated ([^_]+)_/);
         const lastUpdated = lastUpdatedMatch ? new Date(lastUpdatedMatch[1]) : new Date(0);
         
         return {
           ...parsed,
-          lastUpdated
+          lastUpdated,
+          publishedAt: publishedAt || lastUpdated
         };
       })
-      .sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime()); // Most recent first
+      .sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0)); // Most recent first
     
     return files;
   }
