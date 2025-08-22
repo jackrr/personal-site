@@ -5,26 +5,18 @@
     <description>Personal blog and photo galleries</description>
     <link>https://jackratner.com</link>
     <atom:link href="https://jackratner.com/feed.xml" rel="self" type="application/rss+xml" />
-    <lastBuildDate>Fri, 22 Aug 2025 01:51:53 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 22 Aug 2025 03:14:52 GMT</lastBuildDate>
     <language>en-us</language>
     <generator>Custom Static Site Generator</generator>
     
     <item>
-      <title>Photo Gallery: Desktops</title>
-      <link>https://jackratner.com/photos/desktops</link>
-      <guid>https://jackratner.com/photos/desktops</guid>
-      <pubDate>Fri, 22 Aug 2025 01:51:50 GMT</pubDate>
-      <description>New photo gallery with 15 images.</description>
-      <category>gallery</category>
-    </item>
-    <item>
       <title>Making this site with Claude Code</title>
       <link>https://jackratner.com/blog/01-making-this-site-with-claude-code</link>
       <guid>https://jackratner.com/blog/01-making-this-site-with-claude-code</guid>
-      <pubDate>Fri, 22 Aug 2025 01:51:50 GMT</pubDate>
+      <pubDate>Fri, 22 Aug 2025 03:14:35 GMT</pubDate>
       <description>&lt;h1&gt;Making this site with Claude Code&lt;/h1&gt;
 
-&lt;p&gt;&lt;em&gt;Last updated Aug 8, 2025&lt;/em&gt;
+&lt;p&gt;&lt;em&gt;Last updated Aug 21, 2025&lt;/em&gt;
 
 &lt;h2&gt;Why the heck did I do this?&lt;/h2&gt;
 
@@ -32,8 +24,16 @@
 
 &lt;h2&gt;Approach&lt;/h2&gt;
 
-&lt;p&gt;To achieve my goals I decided to avoid w...</description>
+&lt;p&gt;To achieve my goals I decided to avoid ...</description>
       <category>blog</category>
+    </item>
+    <item>
+      <title>Photo Gallery: Desktops</title>
+      <link>https://jackratner.com/photos/desktops</link>
+      <guid>https://jackratner.com/photos/desktops</guid>
+      <pubDate>Fri, 22 Aug 2025 03:14:35 GMT</pubDate>
+      <description>New photo gallery with 15 images.</description>
+      <category>gallery</category>
     </item>
   </channel>
 </rss>

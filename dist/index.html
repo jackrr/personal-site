@@ -3,21 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jack Ratner</title>
+    <title>About me</title>
     <link rel="stylesheet" href="./styles.css">
     <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/feed.xml">
 </head>
 <body>
     <header>
-        <nav>
-            <a href="/">Home</a>
-            <a href="/updates">Blog</a>
-            <a href="/photos">Photos</a>
-            <button id="theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+        <nav class="nav">
+            <div class="nav-header">
+                <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                <div class="nav-brand">
+                    <a href="/">Jack Ratner</a>
+                </div>
+                <div class="nav-desktop">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/updates" class="nav-link">Blog</a>
+                    <a href="/photos" class="nav-link">Photos</a>
+                    <button id="theme-toggle" class="nav-link theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+                </div>
+            </div>
+            <div class="nav-menu" id="nav-menu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/updates" class="nav-link">Blog</a>
+                <a href="/photos" class="nav-link">Photos</a>
+                <button id="theme-toggle-mobile" class="nav-link theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+            </div>
         </nav>
     </header>
     <main>
-        <h1>Jack Ratner</h1>
+        <h1>About me</h1>
 
 <p>I write code and do some other things too.</p>
 

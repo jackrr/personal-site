@@ -270,11 +270,29 @@ ${items.map(item => `    <item>
 </head>
 <body>
     <header>
-        <nav>
-            <a href="/">Home</a>
-            <a href="/updates">Blog</a>
-            <a href="/photos">Photos</a>
-            <button id="theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+        <nav class="nav">
+            <div class="nav-header">
+                <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                <div class="nav-brand">
+                    <a href="/">Jack Ratner</a>
+                </div>
+                <div class="nav-desktop">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/updates" class="nav-link">Blog</a>
+                    <a href="/photos" class="nav-link">Photos</a>
+                    <button id="theme-toggle" class="nav-link theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+                </div>
+            </div>
+            <div class="nav-menu" id="nav-menu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/updates" class="nav-link">Blog</a>
+                <a href="/photos" class="nav-link">Photos</a>
+                <button id="theme-toggle-mobile" class="nav-link theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+            </div>
         </nav>
     </header>
     <main>
@@ -616,32 +634,75 @@ ${items.map(item => `    <item>
         margin-bottom: 2rem;
       }
 
-      nav {
+      .nav {
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      .nav-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        max-width: 1200px;
-        margin: 0 auto;
       }
 
-      nav a {
+      .nav-brand a {
+        color: var(--text-color);
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
+
+      .nav-toggle {
+        display: none;
+        flex-direction: column;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        margin-right: 1rem;
+      }
+
+      .hamburger-line {
+        width: 25px;
+        height: 3px;
+        background-color: var(--text-color);
+        margin: 3px 0;
+        transition: 0.3s;
+      }
+
+      .nav-desktop {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .nav-menu {
+        display: none;
+        padding: 1rem 0;
+        border-top: 1px solid var(--border-color);
+        margin-top: 1rem;
+      }
+
+      .nav-link {
         color: var(--link-color);
         text-decoration: none;
-        margin-right: 1rem;
         font-weight: 500;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
       }
 
-      nav a:hover {
-        text-decoration: underline;
+      .nav-link:hover {
+        background-color: var(--border-color);
+        text-decoration: none;
       }
 
-      #theme-toggle {
+      .theme-toggle {
         background: none;
         border: 1px solid var(--border-color);
         color: var(--text-color);
-        padding: 0.5rem;
         cursor: pointer;
-        border-radius: 4px;
         font-size: 1rem;
       }
 
@@ -984,6 +1045,67 @@ ${items.map(item => `    <item>
           height: 20px;
         }
       }
+
+      /* Mobile Navigation */
+      @media (max-width: 768px) {
+        .nav-toggle {
+          display: flex;
+        }
+
+        .nav-desktop {
+          display: none;
+        }
+
+        .nav-menu {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background-color: var(--bg-color);
+          border-top: 1px solid var(--border-color);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          transform: translateY(-100%);
+          opacity: 0;
+          visibility: hidden;
+          transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+          z-index: 1000;
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          padding: 1rem 0;
+        }
+
+        .nav-menu.active {
+          transform: translateY(0);
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .nav-menu .nav-link {
+          padding: 0.75rem 1rem;
+          border-bottom: 1px solid var(--border-color);
+          text-align: left;
+          width: 100%;
+          display: block;
+        }
+
+        .nav-menu .nav-link:last-child {
+          border-bottom: none;
+        }
+
+        /* Hamburger animation */
+        .nav-toggle.active .hamburger-line:nth-child(1) {
+          transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .nav-toggle.active .hamburger-line:nth-child(2) {
+          opacity: 0;
+        }
+
+        .nav-toggle.active .hamburger-line:nth-child(3) {
+          transform: rotate(-45deg) translate(7px, -6px);
+        }
+      }
     `;
     
     writeFileSync(join(this.distDir, 'styles.css'), css);
@@ -993,6 +1115,7 @@ ${items.map(item => `    <item>
     const js = `
       // Theme toggle functionality
       const themeToggle = document.getElementById('theme-toggle');
+      const themeToggleMobile = document.getElementById('theme-toggle-mobile');
       const html = document.documentElement;
 
       // Initialize theme based on system preference or stored preference
@@ -1007,13 +1130,49 @@ ${items.map(item => `    <item>
         html.setAttribute('data-theme', 'light');
       }
 
-      themeToggle.addEventListener('click', () => {
+      function toggleTheme() {
         const currentTheme = html.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         html.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-      });
+      }
+
+      if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+      }
+      
+      if (themeToggleMobile) {
+        themeToggleMobile.addEventListener('click', toggleTheme);
+      }
+
+      // Mobile navigation menu toggle
+      const navToggle = document.getElementById('nav-toggle');
+      const navMenu = document.getElementById('nav-menu');
+
+      if (navToggle && navMenu) {
+        navToggle.addEventListener('click', () => {
+          navToggle.classList.toggle('active');
+          navMenu.classList.toggle('active');
+        });
+
+        // Close menu when clicking on a link
+        const navLinks = navMenu.querySelectorAll('.nav-link:not(.theme-toggle)');
+        navLinks.forEach(link => {
+          link.addEventListener('click', () => {
+            navToggle.classList.remove('active');
+            navMenu.classList.remove('active');
+          });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (event) => {
+          if (!navToggle.contains(event.target) && !navMenu.contains(event.target)) {
+            navToggle.classList.remove('active');
+            navMenu.classList.remove('active');
+          }
+        });
+      }
 
       // Photo navigation with arrow keys
       const photoViewer = document.querySelector('.photo-viewer');
@@ -1050,6 +1209,41 @@ ${items.map(item => `    <item>
               break;
           }
         });
+
+        // Touch/swipe navigation
+        let startX = 0;
+        let startY = 0;
+        let endX = 0;
+        let endY = 0;
+
+        photoViewer.addEventListener('touchstart', (event) => {
+          startX = event.touches[0].clientX;
+          startY = event.touches[0].clientY;
+        }, { passive: true });
+
+        photoViewer.addEventListener('touchend', (event) => {
+          endX = event.changedTouches[0].clientX;
+          endY = event.changedTouches[0].clientY;
+
+          const deltaX = endX - startX;
+          const deltaY = endY - startY;
+          const minSwipeDistance = 50;
+
+          // Check if horizontal swipe is greater than vertical swipe
+          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+            if (deltaX > 0) {
+              // Swipe right - go to previous image
+              if (prevUrl) {
+                window.location.href = prevUrl;
+              }
+            } else {
+              // Swipe left - go to next image
+              if (nextUrl) {
+                window.location.href = nextUrl;
+              }
+            }
+          }
+        }, { passive: true });
       }
     `;
     

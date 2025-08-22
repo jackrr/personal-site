@@ -1,6 +1,7 @@
 
       // Theme toggle functionality
       const themeToggle = document.getElementById('theme-toggle');
+      const themeToggleMobile = document.getElementById('theme-toggle-mobile');
       const html = document.documentElement;
 
       // Initialize theme based on system preference or stored preference
@@ -15,13 +16,49 @@
         html.setAttribute('data-theme', 'light');
       }
 
-      themeToggle.addEventListener('click', () => {
+      function toggleTheme() {
         const currentTheme = html.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         html.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-      });
+      }
+
+      if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+      }
+      
+      if (themeToggleMobile) {
+        themeToggleMobile.addEventListener('click', toggleTheme);
+      }
+
+      // Mobile navigation menu toggle
+      const navToggle = document.getElementById('nav-toggle');
+      const navMenu = document.getElementById('nav-menu');
+
+      if (navToggle && navMenu) {
+        navToggle.addEventListener('click', () => {
+          navToggle.classList.toggle('active');
+          navMenu.classList.toggle('active');
+        });
+
+        // Close menu when clicking on a link
+        const navLinks = navMenu.querySelectorAll('.nav-link:not(.theme-toggle)');
+        navLinks.forEach(link => {
+          link.addEventListener('click', () => {
+            navToggle.classList.remove('active');
+            navMenu.classList.remove('active');
+          });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (event) => {
+          if (!navToggle.contains(event.target) && !navMenu.contains(event.target)) {
+            navToggle.classList.remove('active');
+            navMenu.classList.remove('active');
+          }
+        });
+      }
 
       // Photo navigation with arrow keys
       const photoViewer = document.querySelector('.photo-viewer');
@@ -58,5 +95,40 @@
               break;
           }
         });
+
+        // Touch/swipe navigation
+        let startX = 0;
+        let startY = 0;
+        let endX = 0;
+        let endY = 0;
+
+        photoViewer.addEventListener('touchstart', (event) => {
+          startX = event.touches[0].clientX;
+          startY = event.touches[0].clientY;
+        }, { passive: true });
+
+        photoViewer.addEventListener('touchend', (event) => {
+          endX = event.changedTouches[0].clientX;
+          endY = event.changedTouches[0].clientY;
+
+          const deltaX = endX - startX;
+          const deltaY = endY - startY;
+          const minSwipeDistance = 50;
+
+          // Check if horizontal swipe is greater than vertical swipe
+          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+            if (deltaX > 0) {
+              // Swipe right - go to previous image
+              if (prevUrl) {
+                window.location.href = prevUrl;
+              }
+            } else {
+              // Swipe left - go to next image
+              if (nextUrl) {
+                window.location.href = nextUrl;
+              }
+            }
+          }
+        }, { passive: true });
       }
     
