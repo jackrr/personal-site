@@ -343,12 +343,27 @@
         background: var(--bg-color);
       }
 
-      .social-links {
+      .footer-content {
         display: flex;
-        justify-content: center;
-        gap: 1.5rem;
+        justify-content: space-between;
+        align-items: center;
         max-width: 1200px;
         margin: 0 auto;
+      }
+
+      .footer-links a {
+        color: var(--link-color);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .footer-links a:hover {
+        text-decoration: underline;
+      }
+
+      .social-links {
+        display: flex;
+        gap: 1.5rem;
       }
 
       .social-links a {
@@ -386,6 +401,11 @@
         footer {
           margin-top: 2rem;
           padding: 1.5rem 0.5rem;
+        }
+
+        .footer-content {
+          flex-direction: column;
+          gap: 1rem;
         }
 
         .social-links {

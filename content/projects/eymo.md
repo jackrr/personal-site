@@ -1,15 +1,7 @@
 # Eymo
 
-This is a project summary.
+Ey(e)mo(uth) is a program that does fun things with a video stream of a face.
 
-## Detail 1
+Check out the [Github](https://github.com/jackrr/eymo) for more info.
 
-[Github](https://github.com/jackrr/eymo)
-
-## Detail 2
-
-Blah blah blah blah blah
-
-### Oooo a sub-sub heading!
-
-Stuff is here too
+Stay tuned for a "how it's made" series of blog posts that dig into various components of the implementation.

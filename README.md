@@ -93,9 +93,3 @@ bun run process-photos ~/Photos/event my-event 800 600 75
 ## For AI Agents
 
 AGENTS.md contains instructions targeted to AI agents working within this project.
-
-### Known issues
-
-- Content is missing on the blog post -- 2 quotes with non-quote content in between are being merged, eliding the non-quote content
-- The site about page is not implemented yet
-- There is an issue rendering one of the images from the blog post, might be related to the first issue

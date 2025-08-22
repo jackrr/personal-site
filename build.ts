@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
 
-import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, copyFileSync } from 'fs';
+import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync, copyFileSync, rmSync } from 'fs';
 import { join, basename, dirname, extname } from 'path';
 
 interface ParsedMarkdown {
   title: string;
   content: string;
   slug: string;
+  lastUpdated?: Date;
 }
 
 class SimpleMarkdownParser {
@@ -24,8 +25,11 @@ class SimpleMarkdownParser {
         
         // Handle relative paths starting with ./ 
         if (cleanSrc.startsWith('./')) {
-          const imageName = basename(cleanSrc.substring(2));
-          const sourcePath = join(sourceDir, imageName);
+          const imageRelativePath = cleanSrc.substring(2); // Remove ./
+          const sourcePath = join(sourceDir, imageRelativePath);
+          
+          // Flatten directory structure for assets - use only the filename
+          const imageName = basename(imageRelativePath);
           
           // Calculate relative path from output location to assets directory
           const outputDir = dirname(outputPath);
@@ -46,9 +50,13 @@ class SimpleMarkdownParser {
         // For absolute URLs, keep as-is
         return `<img src="${cleanSrc}" alt="${alt}">`;
       })
+      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.+?)__/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/_(.+?)_/g, '<em>$1</em>')
       .replace(/^> (.+)$/gm, '<blockquote-line>$1</blockquote-line>')
       .replace(/^- (.+)$/gm, '<li>$1</li>')
       .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
@@ -67,16 +75,42 @@ class SimpleMarkdownParser {
       .replace(/<\/h([1-6])><\/p>/g, '</h$1>')
       .replace(/<p><img/g, '<img')
       .replace(/><\/p>/g, '>')
+      .replace(/<p><pre>/g, '<pre>')
+      .replace(/<\/pre><\/p>/g, '</pre>')
       .replace(/<p><blockquote-line>/g, '<blockquote-line>')
       .replace(/<\/blockquote-line><\/p>/g, '</blockquote-line>')
-      .replace(/(<blockquote-line>.*<\/blockquote-line>)/s, (match) => {
-        const lines = match.match(/<blockquote-line>(.*?)<\/blockquote-line>/g);
-        if (lines) {
-          const content = lines.map(line => line.replace(/<\/?blockquote-line>/g, '')).join('<br>');
-          return `<blockquote>${content}</blockquote>`;
+      .split('\n')
+      .reduce((acc, line) => {
+        if (line.includes('<blockquote-line>')) {
+          // Start of a blockquote
+          if (acc.length > 0 && !acc[acc.length - 1].includes('<blockquote>')) {
+            acc.push('<blockquote>');
+          } else if (acc.length === 0) {
+            acc.push('<blockquote>');
+          }
+          const content = line.replace(/<\/?blockquote-line>/g, '');
+          if (acc[acc.length - 1] === '<blockquote>') {
+            acc[acc.length - 1] = '<blockquote>' + content;
+          } else {
+            acc[acc.length - 1] += '<br>' + content;
+          }
+        } else if (acc.length > 0 && acc[acc.length - 1].startsWith('<blockquote>') && !acc[acc.length - 1].endsWith('</blockquote>')) {
+          // End the current blockquote
+          acc[acc.length - 1] += '</blockquote>';
+          acc.push(line);
+        } else {
+          acc.push(line);
         }
-        return match;
+        return acc;
+      }, [] as string[])
+      .map(line => {
+        // Clean up any unclosed blockquotes
+        if (line.startsWith('<blockquote>') && !line.endsWith('</blockquote>')) {
+          return line + '</blockquote>';
+        }
+        return line;
       })
+      .join('\n')
       .replace(/<p><ul>/g, '<ul>')
       .replace(/<\/ul><\/p>/g, '</ul>')
       .replace(/<p><ol>/g, '<ol>')
@@ -129,6 +163,79 @@ class StaticSiteBuilder {
     }
   }
 
+  buildRSSFeed() {
+    const blogPosts = this.getBlogPosts();
+    const photoGalleries = this.getPhotoGalleries();
+    
+    // Combine and sort all content by date (newest first)
+    const allContent = [
+      ...blogPosts.map(post => ({
+        type: 'blog',
+        title: post.title,
+        slug: post.slug,
+        url: `/blog/${post.slug}`,
+        content: post.content.substring(0, 500) + '...',
+        date: this.getFileDate(join('content/blog', `${post.slug}.md`))
+      })),
+      ...photoGalleries.map(gallery => ({
+        type: 'gallery',
+        title: `Photo Gallery: ${gallery.displayName}`,
+        slug: gallery.name,
+        url: `/photos/${gallery.name}`,
+        content: `New photo gallery with ${gallery.imageCount} images.`,
+        date: this.getFileDate(join('content/photos', gallery.name))
+      }))
+    ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    const rssXml = this.generateRSSXML(allContent);
+    writeFileSync(join(this.distDir, 'feed.xml'), rssXml);
+  }
+
+  getFileDate(filePath: string): Date {
+    try {
+      return statSync(filePath).mtime;
+    } catch {
+      return new Date();
+    }
+  }
+
+
+  generateRSSXML(items: Array<{type: string, title: string, slug: string, url: string, content: string, date: Date}>): string {
+    const now = new Date().toUTCString();
+    const baseUrl = 'https://jackratner.com'; // Update this to your actual domain
+    
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Jack Ratner</title>
+    <description>Personal blog and photo galleries</description>
+    <link>${baseUrl}</link>
+    <atom:link href="${baseUrl}/feed.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>${now}</lastBuildDate>
+    <language>en-us</language>
+    <generator>Custom Static Site Generator</generator>
+    
+${items.map(item => `    <item>
+      <title>${this.escapeXML(item.title)}</title>
+      <link>${baseUrl}${item.url}</link>
+      <guid>${baseUrl}${item.url}</guid>
+      <pubDate>${item.date.toUTCString()}</pubDate>
+      <description>${this.escapeXML(item.content)}</description>
+      <category>${item.type}</category>
+    </item>`).join('\n')}
+  </channel>
+</rss>`;
+  }
+
+  escapeXML(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   private copyImages() {
     const imagesToCopy = this.parser.getImagesToCopy();
     for (const image of imagesToCopy) {
@@ -159,6 +266,7 @@ class StaticSiteBuilder {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
     <link rel="stylesheet" href="${cssPath}">
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/feed.xml">
 </head>
 <body>
     <header>
@@ -173,24 +281,27 @@ class StaticSiteBuilder {
         ${content}
     </main>
     <footer>
-        <div class="social-links">
-            <a href="https://github.com/jackrr" aria-label="GitHub" target="_blank" rel="noopener noreferrer">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-            </a>
-            <a href="https://www.linkedin.com/in/jack-ratner-1359b45a/" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                </svg>
-            </a>
-            <a href="https://bsky.app/profile/jackratner.bsky.social" aria-label="Bluesky" target="_blank" rel="noopener noreferrer">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2.5c-2.4 2.8-5.8 8.3-6.9 11.1-.6 1.5-.9 2.8-.9 3.9 0 2.2 1.8 4 4 4s4-1.8 4-4c0-1.1-.3-2.4-.9-3.9C10.2 10.8 9.4 5.3 12 2.5z"/>
-                    <path d="M12 2.5c2.4 2.8 5.8 8.3 6.9 11.1.6 1.5.9 2.8.9 3.9 0 2.2-1.8 4-4 4s-4-1.8-4-4c0-1.1.3-2.4.9-3.9C13.8 10.8 14.6 5.3 12 2.5z"/>
-                    <circle cx="12" cy="12" r="1.5"/>
-                </svg>
-            </a>
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="/about-this-site">About</a>
+            </div>
+            <div class="social-links">
+                <a href="https://github.com/jackrr" aria-label="GitHub" target="_blank" rel="noopener noreferrer">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </a>
+                <a href="https://www.linkedin.com/in/jack-ratner-1359b45a/" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                </a>
+                <a href="https://bsky.app/profile/jackratner.bsky.social" aria-label="Bluesky" target="_blank" rel="noopener noreferrer">
+                    <svg width="24" height="24" viewBox="0 0 600 530" fill="currentColor">
+                        <path d="m135.72 44.03c66.496 49.921 138.02 151.14 164.28 205.46 26.262-54.316 97.782-155.54 164.28-205.46 47.98-36.021 125.72-63.892 125.72 24.795 0 17.712-10.155 148.79-16.111 170.07-20.703 73.984-96.144 92.854-163.25 81.433 117.3 19.964 147.14 86.092 82.697 152.22-122.39 125.59-175.91-31.511-189.63-71.766-2.514-7.3797-3.6904-10.832-3.7077-7.8964-0.0174-2.9357-1.1937 0.51669-3.7077 7.8964-13.714 40.255-67.233 197.36-189.63 71.766-64.444-66.128-34.605-132.26 82.697-152.22-67.108 11.421-142.55-7.4491-163.25-81.433-5.9562-21.282-16.111-152.36-16.111-170.07 0-88.687 77.742-60.816 125.72-24.795z" fill="currentColor"/>
+                    </svg>
+                </a>
+            </div>
         </div>
     </footer>
     <script src="${scriptPath}"></script>
@@ -207,20 +318,27 @@ class StaticSiteBuilder {
     const blogSection = `
       <section class="recent-posts">
         <h2>Recent Blog Posts</h2>
-        ${recentPosts.map(post => `
-          <article>
-            <h3><a href="/updates/${post.slug}">${post.title}</a></h3>
-          </article>
-        `).join('')}
+        <ul>
+          ${recentPosts.map(post => `
+            <li><a href="/updates/${post.slug}">${post.title}</a></li>
+          `).join('')}
+        </ul>
         <a href="/updates">View all posts →</a>
       </section>
     `;
 
     // Add photos section
+    const galleries = this.getPhotoGalleries();
     const photosSection = `
       <section class="photos">
         <h2>Photo Galleries</h2>
-        <p>Photo galleries will be available soon.</p>
+        ${galleries.length > 0 ? `
+          <ul>
+            ${galleries.slice(0, 3).map(gallery => `
+              <li><a href="/photos/${gallery.name}">${gallery.displayName}</a> (${gallery.imageCount} images)</li>
+            `).join('')}
+          </ul>
+        ` : '<p>Photo galleries will be available soon.</p>'}
         <a href="/photos">View all galleries →</a>
       </section>
     `;
@@ -230,11 +348,13 @@ class StaticSiteBuilder {
     const projectsSection = `
       <section class="projects">
         <h2>Projects</h2>
-        ${projects.map(project => `
-          <article>
-            <h3><a href="/projects/${project.slug}">${project.title}</a></h3>
-          </article>
-        `).join('')}
+        ${projects.length > 0 ? `
+          <ul>
+            ${projects.map(project => `
+              <li><a href="/projects/${project.slug}">${project.title}</a></li>
+            `).join('')}
+          </ul>
+        ` : '<p>Projects will be available soon.</p>'}
       </section>
     `;
 
@@ -248,11 +368,13 @@ class StaticSiteBuilder {
     const blogPosts = this.getBlogPosts();
     const content = `
       <h1>Blog Posts</h1>
-      ${blogPosts.map(post => `
-        <article>
-          <h2><a href="/updates/${post.slug}">${post.title}</a></h2>
-        </article>
-      `).join('')}
+      ${blogPosts.length > 0 ? `
+        <ul>
+          ${blogPosts.map(post => `
+            <li><a href="/updates/${post.slug}">${post.title}</a></li>
+          `).join('')}
+        </ul>
+      ` : '<p>No blog posts available.</p>'}
     `;
     
     const html = this.createTemplate('Blog Posts', content, '../styles.css', '../script.js');
@@ -279,6 +401,12 @@ class StaticSiteBuilder {
       const html = this.createTemplate(project.title, project.content, '../styles.css', '../script.js');
       writeFileSync(join(this.distDir, 'projects', `${project.slug}.html`), html);
     });
+  }
+
+  buildAboutPage() {
+    const about = this.parser.parseFile('content/about.md', 'dist/about-this-site.html');
+    const html = this.createTemplate(about.title, about.content, './styles.css', './script.js');
+    writeFileSync(join(this.distDir, 'about-this-site.html'), html);
   }
 
   buildPhotosIndex() {
@@ -782,12 +910,27 @@ class StaticSiteBuilder {
         background: var(--bg-color);
       }
 
-      .social-links {
+      .footer-content {
         display: flex;
-        justify-content: center;
-        gap: 1.5rem;
+        justify-content: space-between;
+        align-items: center;
         max-width: 1200px;
         margin: 0 auto;
+      }
+
+      .footer-links a {
+        color: var(--link-color);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .footer-links a:hover {
+        text-decoration: underline;
+      }
+
+      .social-links {
+        display: flex;
+        gap: 1.5rem;
       }
 
       .social-links a {
@@ -825,6 +968,11 @@ class StaticSiteBuilder {
         footer {
           margin-top: 2rem;
           padding: 1.5rem 0.5rem;
+        }
+
+        .footer-content {
+          flex-direction: column;
+          gap: 1rem;
         }
 
         .social-links {
@@ -917,8 +1065,18 @@ class StaticSiteBuilder {
       .map(file => {
         const slug = basename(file, '.md');
         const outputPath = `dist/updates/${slug}.html`;
-        return this.parser.parseFile(join(blogDir, file), outputPath);
-      });
+        const parsed = this.parser.parseFile(join(blogDir, file), outputPath);
+        
+        // Extract "Last updated" date from content
+        const lastUpdatedMatch = parsed.content.match(/_Last updated ([^_]+)_/);
+        const lastUpdated = lastUpdatedMatch ? new Date(lastUpdatedMatch[1]) : new Date(0);
+        
+        return {
+          ...parsed,
+          lastUpdated
+        };
+      })
+      .sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime()); // Most recent first
     
     return files;
   }
@@ -938,14 +1096,95 @@ class StaticSiteBuilder {
     return files;
   }
 
+  cleanupOrphanedFiles() {
+    if (!existsSync(this.distDir)) return;
+    
+    // Get all current content sources
+    const expectedFiles = new Set<string>();
+    
+    // Core files
+    expectedFiles.add('index.html');
+    expectedFiles.add('about-this-site.html');
+    expectedFiles.add('feed.xml');
+    expectedFiles.add('styles.css');
+    expectedFiles.add('script.js');
+    
+    // Blog posts
+    const blogPosts = this.getBlogPosts();
+    expectedFiles.add('updates/index.html');
+    blogPosts.forEach(post => {
+      expectedFiles.add(`updates/${post.slug}.html`);
+    });
+    
+    // Projects
+    const projects = this.getProjects();
+    projects.forEach(project => {
+      expectedFiles.add(`projects/${project.slug}.html`);
+    });
+    
+    // Photo galleries
+    const galleries = this.getPhotoGalleries();
+    expectedFiles.add('photos/index.html');
+    galleries.forEach(gallery => {
+      expectedFiles.add(`photos/${gallery.name}/index.html`);
+      gallery.images.forEach(image => {
+        expectedFiles.add(`photos/${gallery.name}/${image}`);
+        expectedFiles.add(`photos/${gallery.name}/${basename(image, extname(image))}.html`);
+      });
+    });
+    
+    // Remove orphaned files
+    this.removeOrphanedFilesRecursive(this.distDir, expectedFiles, '');
+  }
+  
+  private removeOrphanedFilesRecursive(dirPath: string, expectedFiles: Set<string>, relativePath: string) {
+    if (!existsSync(dirPath)) return;
+    
+    const entries = readdirSync(dirPath, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      const fullPath = join(dirPath, entry.name);
+      const relativeFilePath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+      
+      if (entry.isDirectory()) {
+        // Skip assets directory (managed separately)
+        if (entry.name === 'assets') continue;
+        
+        this.removeOrphanedFilesRecursive(fullPath, expectedFiles, relativeFilePath);
+        
+        // Remove empty directories
+        try {
+          const remainingEntries = readdirSync(fullPath);
+          if (remainingEntries.length === 0) {
+            rmSync(fullPath, { recursive: true });
+            console.log(`Removed empty directory: ${relativeFilePath}`);
+          }
+        } catch (error) {
+          // Directory might have been removed already
+        }
+      } else {
+        // Remove orphaned files
+        if (!expectedFiles.has(relativeFilePath)) {
+          rmSync(fullPath);
+          console.log(`Removed orphaned file: ${relativeFilePath}`);
+        }
+      }
+    }
+  }
+
   build() {
     console.log('Building static site...');
+    
+    // Clean up orphaned files first
+    this.cleanupOrphanedFiles();
     
     this.buildHomepage();
     this.buildBlogIndex();
     this.buildBlogPosts();
     this.buildProjects();
+    this.buildAboutPage();
     this.buildPhotosIndex();
+    this.buildRSSFeed();
     this.buildStyles();
     this.buildScript();
     
