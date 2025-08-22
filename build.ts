@@ -99,14 +99,6 @@ class SimpleMarkdownParser {
       .replace(/^> (.+)$/gm, '<blockquote-line>$1</blockquote-line>')
       .replace(/^- (.+)$/gm, '<li>$1</li>')
       .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
-      .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-      .replace(/(<li>.*<\/li>)/s, (match) => {
-        const items = match.match(/<li>.*?<\/li>/g);
-        if (items && items.some(item => /^\d+\./.test(item))) {
-          return `<ol>${items.join('')}</ol>`;
-        }
-        return `<ul>${items?.join('') || ''}</ul>`;
-      })
       .split('\n')
       .map(line => line.trim() ? `<p>${line}</p>` : '')
       .join('\n')
@@ -118,6 +110,8 @@ class SimpleMarkdownParser {
       .replace(/<\/pre><\/p>/g, '</pre>')
       .replace(/<p><blockquote-line>/g, '<blockquote-line>')
       .replace(/<\/blockquote-line><\/p>/g, '</blockquote-line>')
+      .replace(/<p><li>/g, '<li>')
+      .replace(/<\/li><\/p>/g, '</li>')
       .split('\n')
       .reduce((acc, line) => {
         if (line.includes('<blockquote-line>')) {
@@ -142,6 +136,25 @@ class SimpleMarkdownParser {
         }
         return acc;
       }, [] as string[])
+      .reduce((acc, line) => {
+        // Handle list items
+        if (line.includes('<li>')) {
+          // Check if we're already in a list
+          if (acc.length > 0 && (acc[acc.length - 1].includes('<ul>') || acc[acc.length - 1].includes('<ol>'))) {
+            // Add to existing list
+            acc[acc.length - 1] = acc[acc.length - 1].replace('</ul>', line + '</ul>').replace('</ol>', line + '</ol>');
+          } else {
+            // Start a new list - default to unordered list
+            acc.push('<ul>' + line + '</ul>');
+          }
+        } else if (acc.length > 0 && (acc[acc.length - 1].includes('<ul>') || acc[acc.length - 1].includes('<ol>')) && line.trim() === '') {
+          // End the current list on empty line
+          acc.push(line);
+        } else {
+          acc.push(line);
+        }
+        return acc;
+      }, [] as string[])
       .map(line => {
         // Clean up any unclosed blockquotes
         if (line.startsWith('<blockquote>') && !line.endsWith('</blockquote>')) {
@@ -150,12 +163,6 @@ class SimpleMarkdownParser {
         return line;
       })
       .join('\n')
-      .replace(/<p><ul>/g, '<ul>')
-      .replace(/<\/ul><\/p>/g, '</ul>')
-      .replace(/<p><ol>/g, '<ol>')
-      .replace(/<\/ol><\/p>/g, '</ol>')
-      .replace(/<p><li>/g, '<li>')
-      .replace(/<\/li><\/p>/g, '</li>')
       .replace(/<p><\/p>/g, '');
 
     // Restore code block placeholders
