@@ -1,6 +1,6 @@
 # Making this site with Claude Code
 
-_Last updated August 21, 2025_
+_Last updated August 22, 2025_
 
 ## Why the heck did I do this?
 
@@ -73,7 +73,7 @@ So then I got a little terse "it looks like a crooked bowtie"
 
 And Claude was patient with me, leaving me with a glimmer of hope:
 
->I've created a simpler butterfly icon with two symmetrical wing paths and a small circle in the center for the body. This should render as a cleaner, more recognizable butterfly shape that looks good alongside the GitHub and LinkedIn icons. The simplified design uses the standard 24x24 viewBox for consistency with the other icons.
+> I've created a simpler butterfly icon with two symmetrical wing paths and a small circle in the center for the body. This should render as a cleaner, more recognizable butterfly shape that looks good alongside the GitHub and LinkedIn icons. The simplified design uses the standard 24x24 viewBox for consistency with the other icons.
 ... but sadly visually, I got what looks something like an overburdened tote bag:
 
 ![Bluesky Womp Tote Bag]("./making-this-site/claude-bluesky-wut-tote.png")
@@ -92,7 +92,7 @@ There were bits and bobs I noticed were missing that I added in through promptin
 
 Some of the prompting to get it "functional" involved finding and pointing out issues with the markdown transpiler. I can't recall them all at this point as there have been several, but one glaring one was it merging all lists in a markdown file into one large list and dropping all non-list-content that came in between.
 
-I blame this class of issue on the high-level decision to implement a novel markdown parser, instead of working with an pre-existing robust implementation. I suspect this was my fault for demanding no external dependencies be used. Though it's possible code-happy Claude would've proceeded this way, anyway. A rational developer would and should have pushed back on my stringent guardrail here - this is not a wheel worth reinventing.
+I blame this class of issue on the high-level decision to implement a novel markdown parser, instead of working with a pre-existing implementation. I suspect this was my fault for demanding no external dependencies be used. Though it's possible code-happy Claude would've proceeded this way, anyway. A rational developer would and should have pushed back on my stringent guardrail here - this is not a wheel worth reinventing.
 
 ## Overall takeaways
 
