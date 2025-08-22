@@ -167,6 +167,9 @@ class StaticSiteBuilder {
     const blogPosts = this.getBlogPosts();
     const photoGalleries = this.getPhotoGalleries();
     
+    // Load existing feed to preserve publication dates
+    const existingPubDates = this.loadExistingPubDates();
+    
     // Combine and sort all content by date (newest first)
     const allContent = [
       ...blogPosts.map(post => ({
@@ -175,7 +178,8 @@ class StaticSiteBuilder {
         slug: post.slug,
         url: `/blog/${post.slug}`,
         content: post.content.substring(0, 500) + '...',
-        date: this.getFileDate(join('content/blog', `${post.slug}.md`))
+        date: this.getFileDate(join('content/blog', `${post.slug}.md`)),
+        pubDate: existingPubDates.get(`/blog/${post.slug}`) || new Date()
       })),
       ...photoGalleries.map(gallery => ({
         type: 'gallery',
@@ -183,12 +187,38 @@ class StaticSiteBuilder {
         slug: gallery.name,
         url: `/photos/${gallery.name}`,
         content: `New photo gallery with ${gallery.imageCount} images.`,
-        date: this.getFileDate(join('content/photos', gallery.name))
+        date: this.getFileDate(join('content/photos', gallery.name)),
+        pubDate: existingPubDates.get(`/photos/${gallery.name}`) || new Date()
       }))
     ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
     const rssXml = this.generateRSSXML(allContent);
     writeFileSync(join(this.distDir, 'feed.xml'), rssXml);
+  }
+
+  loadExistingPubDates(): Map<string, Date> {
+    const feedPath = join(this.distDir, 'feed.xml');
+    const pubDates = new Map<string, Date>();
+    
+    try {
+      if (existsSync(feedPath)) {
+        const feedContent = readFileSync(feedPath, 'utf-8');
+        
+        // Simple regex-based parsing to extract link and pubDate pairs
+        const itemRegex = /<item>[\s\S]*?<link>([^<]+)<\/link>[\s\S]*?<pubDate>([^<]+)<\/pubDate>[\s\S]*?<\/item>/g;
+        let match;
+        
+        while ((match = itemRegex.exec(feedContent)) !== null) {
+          const [, link, pubDateStr] = match;
+          const cleanLink = link.replace('https://jackratner.com', ''); // Remove domain to get relative URL
+          pubDates.set(cleanLink, new Date(pubDateStr));
+        }
+      }
+    } catch (error) {
+      console.warn('Could not parse existing RSS feed:', error);
+    }
+    
+    return pubDates;
   }
 
   getFileDate(filePath: string): Date {
@@ -200,7 +230,7 @@ class StaticSiteBuilder {
   }
 
 
-  generateRSSXML(items: Array<{type: string, title: string, slug: string, url: string, content: string, date: Date}>): string {
+  generateRSSXML(items: Array<{type: string, title: string, slug: string, url: string, content: string, date: Date, pubDate: Date}>): string {
     const now = new Date().toUTCString();
     const baseUrl = 'https://jackratner.com'; // Update this to your actual domain
     
@@ -219,7 +249,7 @@ ${items.map(item => `    <item>
       <title>${this.escapeXML(item.title)}</title>
       <link>${baseUrl}${item.url}</link>
       <guid>${baseUrl}${item.url}</guid>
-      <pubDate>${item.date.toUTCString()}</pubDate>
+      <pubDate>${item.pubDate.toUTCString()}</pubDate>
       <description>${this.escapeXML(item.content)}</description>
       <category>${item.type}</category>
     </item>`).join('\n')}

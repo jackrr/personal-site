@@ -5,7 +5,11 @@
     <description>Personal blog and photo galleries</description>
     <link>https://jackratner.com</link>
     <atom:link href="https://jackratner.com/feed.xml" rel="self" type="application/rss+xml" />
+<<<<<<< HEAD
     <lastBuildDate>Fri, 22 Aug 2025 03:14:52 GMT</lastBuildDate>
+=======
+    <lastBuildDate>Fri, 22 Aug 2025 02:37:02 GMT</lastBuildDate>
+>>>>>>> a80911a (Preserve RSS feed publication dates for existing items)
     <language>en-us</language>
     <generator>Custom Static Site Generator</generator>
     
