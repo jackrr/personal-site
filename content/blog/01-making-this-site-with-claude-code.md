@@ -4,7 +4,7 @@ _Last updated August 22, 2025_
 
 ## Why the heck did I do this?
 
-- To focus on the content of my site rather than the implementation, but still have total control over its implementation
+- To focus on the content of my site rather than the implementation, but still have total configurability
 - To learn how to work with AI agents since it seems most employers will expect me to do this to some extent
 - To see if AI agents will actually save me time
 

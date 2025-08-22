@@ -1,6 +1,6 @@
 # About this site
 
-All content (text, images) on this site are of my own making and are not to be copied without my express permission.
+All content (text and images) on this site are of my own making and are not to be used without my permission.
 
 The code backing this site (html, css, js) was generated with AI. See [my post on how it was made](/updates/making-this-site-with-claude-code) for more info.
 
