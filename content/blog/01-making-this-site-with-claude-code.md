@@ -1,6 +1,6 @@
 # Making this site with Claude Code
 
-_Last updated Aug 8, 2025_
+_Last updated Aug 21, 2025_
 
 ## Why the heck did I do this?
 

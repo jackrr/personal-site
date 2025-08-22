@@ -31,11 +31,13 @@ It is expected that the agent will create and manage a build process to translat
 - Photo gallery index at `/photos`
 - Photo gallery at `/photos/:gallery-name`
   - `:gallery-name` in the URL refers to a specific gallery with content at `./content/photos/:gallery-name`
+  - `./content/photos/:gallery-name/meta.yaml` contains metadata for the gallery
   - Gallery should have a scrolling experience to browse all photos, with delayed loading of images until they are nearing the viewport (infinite scroll)
   - Clicking a photo should open a full-page view of the image at `/photos/:gallery-name/:image-name`
 - Blog at `/updates`
 - Blog post at `/updates/:post-name`
   - `:post-name` in the URL refers to a specific blog post with content at `./content/blog/:post-name.md`
+  - metadata for the post will live at `./content/blog/:post-name.meta.yaml`
 - Each project at `/projects/:project-name`
   - `:project-name` in the URL refers to a specific project with content at `./content/projects/:project-name.md`
 - A dark/light theme toggle that uses device settings for the default

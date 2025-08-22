@@ -8,6 +8,39 @@ interface ParsedMarkdown {
   content: string;
   slug: string;
   lastUpdated?: Date;
+  publishedAt?: Date;
+}
+
+interface GalleryMeta {
+  publishedAt?: Date;
+  description?: string;
+}
+
+class SimpleYamlParser {
+  static parseSimple(yamlContent: string): Record<string, any> {
+    const result: Record<string, any> = {};
+    const lines = yamlContent.split('\n');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const colonIndex = trimmed.indexOf(':');
+        if (colonIndex > 0) {
+          const key = trimmed.substring(0, colonIndex).trim();
+          const value = trimmed.substring(colonIndex + 1).trim();
+          
+          // Handle date parsing for published_at
+          if (key === 'published_at') {
+            result[key] = new Date(value);
+          } else {
+            result[key] = value;
+          }
+        }
+      }
+    }
+    
+    return result;
+  }
 }
 
 class SimpleMarkdownParser {
@@ -167,6 +200,9 @@ class StaticSiteBuilder {
     const blogPosts = this.getBlogPosts();
     const photoGalleries = this.getPhotoGalleries();
     
+    // Load existing feed to preserve publication dates for items that don't have metadata
+    const existingPubDates = this.loadExistingPubDates();
+    
     // Combine and sort all content by date (newest first)
     const allContent = [
       ...blogPosts.map(post => ({
@@ -175,20 +211,47 @@ class StaticSiteBuilder {
         slug: post.slug,
         url: `/blog/${post.slug}`,
         content: post.content.substring(0, 500) + '...',
-        date: this.getFileDate(join('content/blog', `${post.slug}.md`))
+        date: post.publishedAt || post.lastUpdated || new Date(),
+        pubDate: post.publishedAt || existingPubDates.get(`/blog/${post.slug}`) || new Date()
       })),
       ...photoGalleries.map(gallery => ({
         type: 'gallery',
         title: `Photo Gallery: ${gallery.displayName}`,
         slug: gallery.name,
         url: `/photos/${gallery.name}`,
-        content: `New photo gallery with ${gallery.imageCount} images.`,
-        date: this.getFileDate(join('content/photos', gallery.name))
+        content: gallery.description || `New photo gallery with ${gallery.imageCount} images.`,
+        date: gallery.publishedAt || new Date(),
+        pubDate: gallery.publishedAt || existingPubDates.get(`/photos/${gallery.name}`) || new Date()
       }))
     ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
     const rssXml = this.generateRSSXML(allContent);
     writeFileSync(join(this.distDir, 'feed.xml'), rssXml);
+  }
+
+  loadExistingPubDates(): Map<string, Date> {
+    const feedPath = join(this.distDir, 'feed.xml');
+    const pubDates = new Map<string, Date>();
+    
+    try {
+      if (existsSync(feedPath)) {
+        const feedContent = readFileSync(feedPath, 'utf-8');
+        
+        // Simple regex-based parsing to extract link and pubDate pairs
+        const itemRegex = /<item>[\s\S]*?<link>([^<]+)<\/link>[\s\S]*?<pubDate>([^<]+)<\/pubDate>[\s\S]*?<\/item>/g;
+        let match;
+        
+        while ((match = itemRegex.exec(feedContent)) !== null) {
+          const [, link, pubDateStr] = match;
+          const cleanLink = link.replace('https://jackratner.com', ''); // Remove domain to get relative URL
+          pubDates.set(cleanLink, new Date(pubDateStr));
+        }
+      }
+    } catch (error) {
+      console.warn('Could not parse existing RSS feed:', error);
+    }
+    
+    return pubDates;
   }
 
   getFileDate(filePath: string): Date {
@@ -200,7 +263,7 @@ class StaticSiteBuilder {
   }
 
 
-  generateRSSXML(items: Array<{type: string, title: string, slug: string, url: string, content: string, date: Date}>): string {
+  generateRSSXML(items: Array<{type: string, title: string, slug: string, url: string, content: string, date: Date, pubDate: Date}>): string {
     const now = new Date().toUTCString();
     const baseUrl = 'https://jackratner.com'; // Update this to your actual domain
     
@@ -219,7 +282,7 @@ ${items.map(item => `    <item>
       <title>${this.escapeXML(item.title)}</title>
       <link>${baseUrl}${item.url}</link>
       <guid>${baseUrl}${item.url}</guid>
-      <pubDate>${item.date.toUTCString()}</pubDate>
+      <pubDate>${item.pubDate.toUTCString()}</pubDate>
       <description>${this.escapeXML(item.content)}</description>
       <category>${item.type}</category>
     </item>`).join('\n')}
@@ -270,11 +333,29 @@ ${items.map(item => `    <item>
 </head>
 <body>
     <header>
-        <nav>
-            <a href="/">Home</a>
-            <a href="/updates">Blog</a>
-            <a href="/photos">Photos</a>
-            <button id="theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+        <nav class="nav">
+            <div class="nav-header">
+                <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                <div class="nav-brand">
+                    <a href="/">Jack Ratner</a>
+                </div>
+                <div class="nav-desktop">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/updates" class="nav-link">Blog</a>
+                    <a href="/photos" class="nav-link">Photos</a>
+                    <button id="theme-toggle" class="nav-link theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+                </div>
+            </div>
+            <div class="nav-menu" id="nav-menu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/updates" class="nav-link">Blog</a>
+                <a href="/photos" class="nav-link">Photos</a>
+                <button id="theme-toggle-mobile" class="nav-link theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+            </div>
         </nav>
     </header>
     <main>
@@ -448,10 +529,11 @@ ${items.map(item => `    <item>
     this.buildPhotoGalleries(galleries);
   }
 
-  buildPhotoGalleries(galleries: Array<{name: string, displayName: string, images: string[], imageCount: number}>) {
+  buildPhotoGalleries(galleries: Array<{name: string, displayName: string, images: string[], imageCount: number, publishedAt?: Date, description?: string}>) {
     galleries.forEach(gallery => {
       const galleryContent = `
         <h1>${gallery.displayName}</h1>
+        ${gallery.description ? `<p class="gallery-description">${gallery.description}</p>` : ''}
         <div class="photo-gallery">
           ${gallery.images.map((image, index) => `
             <div class="photo-item">
@@ -550,18 +632,37 @@ ${items.map(item => `    <item>
           .sort();
         
         if (images.length > 0) {
+          // Read metadata from meta.yaml file
+          const metaPath = join(galleryPath, 'meta.yaml');
+          let meta: GalleryMeta = {};
+          
+          if (existsSync(metaPath)) {
+            try {
+              const metaContent = readFileSync(metaPath, 'utf-8');
+              const parsedMeta = SimpleYamlParser.parseSimple(metaContent);
+              meta = {
+                publishedAt: parsedMeta.published_at,
+                description: parsedMeta.description
+              };
+            } catch (error) {
+              console.warn(`Could not parse metadata for gallery ${entry.name}:`, error);
+            }
+          }
+          
           galleries.push({
             name: entry.name,
             displayName: entry.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
             images,
             imageCount: images.length,
-            previewImage: images[0] // Use first image as preview
+            previewImage: images[0], // Use first image as preview
+            publishedAt: meta.publishedAt || this.getFileDate(galleryPath),
+            description: meta.description
           });
         }
       }
     }
     
-    return galleries;
+    return galleries.sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0));
   }
 
   buildStyles() {
@@ -616,32 +717,75 @@ ${items.map(item => `    <item>
         margin-bottom: 2rem;
       }
 
-      nav {
+      .nav {
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      .nav-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        max-width: 1200px;
-        margin: 0 auto;
       }
 
-      nav a {
+      .nav-brand a {
+        color: var(--text-color);
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
+
+      .nav-toggle {
+        display: none;
+        flex-direction: column;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        margin-right: 1rem;
+      }
+
+      .hamburger-line {
+        width: 25px;
+        height: 3px;
+        background-color: var(--text-color);
+        margin: 3px 0;
+        transition: 0.3s;
+      }
+
+      .nav-desktop {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .nav-menu {
+        display: none;
+        padding: 1rem 0;
+        border-top: 1px solid var(--border-color);
+        margin-top: 1rem;
+      }
+
+      .nav-link {
         color: var(--link-color);
         text-decoration: none;
-        margin-right: 1rem;
         font-weight: 500;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
       }
 
-      nav a:hover {
-        text-decoration: underline;
+      .nav-link:hover {
+        background-color: var(--border-color);
+        text-decoration: none;
       }
 
-      #theme-toggle {
+      .theme-toggle {
         background: none;
         border: 1px solid var(--border-color);
         color: var(--text-color);
-        padding: 0.5rem;
         cursor: pointer;
-        border-radius: 4px;
         font-size: 1rem;
       }
 
@@ -719,6 +863,14 @@ ${items.map(item => `    <item>
         object-fit: cover;
         border-radius: 4px;
         margin-top: 0.5rem;
+      }
+
+      .gallery-description {
+        font-size: 1.1rem;
+        color: var(--text-color);
+        margin: 1rem 0 2rem 0;
+        line-height: 1.5;
+        font-style: italic;
       }
 
       .photo-gallery {
@@ -984,6 +1136,67 @@ ${items.map(item => `    <item>
           height: 20px;
         }
       }
+
+      /* Mobile Navigation */
+      @media (max-width: 768px) {
+        .nav-toggle {
+          display: flex;
+        }
+
+        .nav-desktop {
+          display: none;
+        }
+
+        .nav-menu {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background-color: var(--bg-color);
+          border-top: 1px solid var(--border-color);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          transform: translateY(-100%);
+          opacity: 0;
+          visibility: hidden;
+          transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+          z-index: 1000;
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          padding: 1rem 0;
+        }
+
+        .nav-menu.active {
+          transform: translateY(0);
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .nav-menu .nav-link {
+          padding: 0.75rem 1rem;
+          border-bottom: 1px solid var(--border-color);
+          text-align: left;
+          width: 100%;
+          display: block;
+        }
+
+        .nav-menu .nav-link:last-child {
+          border-bottom: none;
+        }
+
+        /* Hamburger animation */
+        .nav-toggle.active .hamburger-line:nth-child(1) {
+          transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .nav-toggle.active .hamburger-line:nth-child(2) {
+          opacity: 0;
+        }
+
+        .nav-toggle.active .hamburger-line:nth-child(3) {
+          transform: rotate(-45deg) translate(7px, -6px);
+        }
+      }
     `;
     
     writeFileSync(join(this.distDir, 'styles.css'), css);
@@ -993,6 +1206,7 @@ ${items.map(item => `    <item>
     const js = `
       // Theme toggle functionality
       const themeToggle = document.getElementById('theme-toggle');
+      const themeToggleMobile = document.getElementById('theme-toggle-mobile');
       const html = document.documentElement;
 
       // Initialize theme based on system preference or stored preference
@@ -1007,13 +1221,49 @@ ${items.map(item => `    <item>
         html.setAttribute('data-theme', 'light');
       }
 
-      themeToggle.addEventListener('click', () => {
+      function toggleTheme() {
         const currentTheme = html.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         html.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-      });
+      }
+
+      if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+      }
+      
+      if (themeToggleMobile) {
+        themeToggleMobile.addEventListener('click', toggleTheme);
+      }
+
+      // Mobile navigation menu toggle
+      const navToggle = document.getElementById('nav-toggle');
+      const navMenu = document.getElementById('nav-menu');
+
+      if (navToggle && navMenu) {
+        navToggle.addEventListener('click', () => {
+          navToggle.classList.toggle('active');
+          navMenu.classList.toggle('active');
+        });
+
+        // Close menu when clicking on a link
+        const navLinks = navMenu.querySelectorAll('.nav-link:not(.theme-toggle)');
+        navLinks.forEach(link => {
+          link.addEventListener('click', () => {
+            navToggle.classList.remove('active');
+            navMenu.classList.remove('active');
+          });
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (event) => {
+          if (!navToggle.contains(event.target) && !navMenu.contains(event.target)) {
+            navToggle.classList.remove('active');
+            navMenu.classList.remove('active');
+          }
+        });
+      }
 
       // Photo navigation with arrow keys
       const photoViewer = document.querySelector('.photo-viewer');
@@ -1050,6 +1300,41 @@ ${items.map(item => `    <item>
               break;
           }
         });
+
+        // Touch/swipe navigation
+        let startX = 0;
+        let startY = 0;
+        let endX = 0;
+        let endY = 0;
+
+        photoViewer.addEventListener('touchstart', (event) => {
+          startX = event.touches[0].clientX;
+          startY = event.touches[0].clientY;
+        }, { passive: true });
+
+        photoViewer.addEventListener('touchend', (event) => {
+          endX = event.changedTouches[0].clientX;
+          endY = event.changedTouches[0].clientY;
+
+          const deltaX = endX - startX;
+          const deltaY = endY - startY;
+          const minSwipeDistance = 50;
+
+          // Check if horizontal swipe is greater than vertical swipe
+          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+            if (deltaX > 0) {
+              // Swipe right - go to previous image
+              if (prevUrl) {
+                window.location.href = prevUrl;
+              }
+            } else {
+              // Swipe left - go to next image
+              if (nextUrl) {
+                window.location.href = nextUrl;
+              }
+            }
+          }
+        }, { passive: true });
       }
     `;
     
@@ -1067,16 +1352,31 @@ ${items.map(item => `    <item>
         const outputPath = `dist/updates/${slug}.html`;
         const parsed = this.parser.parseFile(join(blogDir, file), outputPath);
         
-        // Extract "Last updated" date from content
+        // Read metadata from yaml file
+        const metaPath = join(blogDir, `${slug}.meta.yaml`);
+        let publishedAt: Date | undefined;
+        
+        if (existsSync(metaPath)) {
+          try {
+            const metaContent = readFileSync(metaPath, 'utf-8');
+            const meta = SimpleYamlParser.parseSimple(metaContent);
+            publishedAt = meta.published_at;
+          } catch (error) {
+            console.warn(`Could not parse metadata for ${slug}:`, error);
+          }
+        }
+        
+        // Extract "Last updated" date from content as fallback
         const lastUpdatedMatch = parsed.content.match(/_Last updated ([^_]+)_/);
         const lastUpdated = lastUpdatedMatch ? new Date(lastUpdatedMatch[1]) : new Date(0);
         
         return {
           ...parsed,
-          lastUpdated
+          lastUpdated,
+          publishedAt: publishedAt || lastUpdated
         };
       })
-      .sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime()); // Most recent first
+      .sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0)); // Most recent first
     
     return files;
   }
