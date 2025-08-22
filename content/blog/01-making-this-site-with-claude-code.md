@@ -14,9 +14,9 @@ To achieve my goals I decided to avoid writing a single line of code as part of 
 
 I first developed a rough vision for the website in my head. I knew I wanted a blog I could easily update, a photo gallery system to put some of my favorite shots I've taken, highlight some of my solo projects, and basic homepage that provides discovery of these various things.
 
-I then encoded this vision into a thorough set of instructions and guidelines in [`AGENTS.md`](https://github.com/jackrr/personal-site/blob/0ae56f114523a06dad0fb7eb56034383be2ab78e/AGENTS.md). This document has hardly changed since I first wrote it.
+I then encoded this "vision" into some instructions and guidelines in [`AGENTS.md`](https://github.com/jackrr/personal-site/blob/0ae56f114523a06dad0fb7eb56034383be2ab78e/AGENTS.md). This document has hardly changed since I first wrote it.
 
-I was blown away by the first iteration it put out. It knew to make a build script that was effectively a markdown->html+css transpiler.
+I was blown away by the first iteration it put out. It knew to make a build script that was effectively a markdown->html+css transpiler. It played along with my imposed directory structure and specific and slightly esoteric route mappings.
 
 ### Photo gallery
 
@@ -79,6 +79,14 @@ And Claude was patient with me, leaving me with a glimmer of hope:
 ![Bluesky Womp Tote Bag]("./making-this-site/claude-bluesky-wut-tote.png")
 
 It's a good reminder that unlike a person, Claude Code can't "see" the page and make aesthetic judgments. Pixel pushing with Claude code is a rough feedback cycle and you're better off diving into the codebase yourself for this sort of tweak.
+
+## Rest of functionality
+
+There were bits and bobs I noticed were missing that I added in through prompting the Claude command line interface. Some include:
+
+- An RSS feed, and a requisite follow-on fix to add metadata with publishing dates to posts and galleries to ensure that the RSS feed doesn't report every post as new on each deploy
+- Swipe interactions on the photo gallery for mobile
+- A navigation menu for mobile
 
 ## Overall takeaways
 
