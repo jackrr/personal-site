@@ -40,6 +40,8 @@ It is expected that the agent will create and manage a build process to translat
   - `:project-name` in the URL refers to a specific project with content at `./content/projects/:project-name.md`
 - A dark/light theme toggle that uses device settings for the default
 - A Github action to run the static site build step on every push to the `main` branch
+- Site about page at `/about-this-site`, with an "About" link in the footer
+- A footer containing icon links to my github (github.com/jackrr), my linkedin (https://www.linkedin.com/in/jack-ratner-1359b45a/), and my bluesky (https://bsky.app/profile/jackratner.bsky.social)
 
 ## Content
 

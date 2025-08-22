@@ -1,5 +1,7 @@
 # Making eymo (Part 1)
 
+_Last updated Aug 21, 2025_
+
 This is [eymo](https://github.com/jackrr/eymo). It's a project to do stupid things.
 
 ## Challenges
