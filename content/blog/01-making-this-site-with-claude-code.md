@@ -1,6 +1,6 @@
 # Making this site with Claude Code
 
-_Last updated Aug 21, 2025_
+_Last updated August 21, 2025_
 
 ## Why the heck did I do this?
 
@@ -80,4 +80,6 @@ It's a good reminder that unlike a person, Claude Code can't "see" the page and 
 
 ## Overall takeaways
 
-I'm quite impressed with the product it built. Yes it looks a little tacky, and yes, the code is the regurgitated and uncredited echoes of real human efforts aggregated from the increasingly void dark web we've built. But damn I have to admit it's nice to focus on the content of my site and not get bogged down in the details of which CSS rules to use. And it only took a few hours of my time to "build".
+I'm quite impressed with the product it built. Yes it looks a little tacky. Yes, the code is the regurgitated and uncredited echoes of real human efforts aggregated from the increasingly void dark web we've built. Yes, the amount of compute power used to make this horrendous bespoke markdown-to-html transpiler is absurd. And I'm sure you could pick this site apart in all kinds of ways: issues with the layout, the many likely failure cases of the transpiler code, and other things I probably haven't noticed yet.
+
+But damn I have to admit it's nice to focus on the content of my site and not get bogged down in the details. Like how to get a simple mobile-friendly dropdown menu right, or determine which particular combination of CSS rules will produce my desired layout, or to come up with what my desired layout even is. And it only took a few hours of my time to "build" it.
