@@ -48,6 +48,8 @@ The agent seems to struggle correcting finer UI issues. Two specific issues I sa
 
 I asked the agent to add arrow-key driven navigation to the photo gallery. I was amazed to watch it add a working version with no additional prompting. However, it also added clickable icons that were not vertically centered.
 
+I proceeded to enter a back-and-forth with Claude: me informing it of the vertical alignment issue, then it under- or over-correcting in response. Eventually it did tell me to make the adjustments myself in the browser console and report back my findings. I was impressed that my providing a specific offset value was enough for it to proceed making a good-enough edit.
+
 #### 2) SVG selection and rendering
 
 I asked Claude to add a footer with a few external icon links to my GitHub, LinkedIn and Bluesky profiles. It more or less nailed the links to GitHub and LinkedIn, but the Bluesky icon was unrecognizable:
