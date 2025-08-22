@@ -5,7 +5,7 @@
     <description>Personal blog and photo galleries</description>
     <link>https://jackratner.com</link>
     <atom:link href="https://jackratner.com/feed.xml" rel="self" type="application/rss+xml" />
-    <lastBuildDate>Fri, 22 Aug 2025 01:46:21 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 22 Aug 2025 01:51:53 GMT</lastBuildDate>
     <language>en-us</language>
     <generator>Custom Static Site Generator</generator>
     
@@ -13,7 +13,7 @@
       <title>Photo Gallery: Desktops</title>
       <link>https://jackratner.com/photos/desktops</link>
       <guid>https://jackratner.com/photos/desktops</guid>
-      <pubDate>Fri, 22 Aug 2025 01:46:19 GMT</pubDate>
+      <pubDate>Fri, 22 Aug 2025 01:51:50 GMT</pubDate>
       <description>New photo gallery with 15 images.</description>
       <category>gallery</category>
     </item>
@@ -21,7 +21,7 @@
       <title>Making this site with Claude Code</title>
       <link>https://jackratner.com/blog/01-making-this-site-with-claude-code</link>
       <guid>https://jackratner.com/blog/01-making-this-site-with-claude-code</guid>
-      <pubDate>Fri, 22 Aug 2025 01:46:19 GMT</pubDate>
+      <pubDate>Fri, 22 Aug 2025 01:51:50 GMT</pubDate>
       <description>&lt;h1&gt;Making this site with Claude Code&lt;/h1&gt;
 
 &lt;p&gt;&lt;em&gt;Last updated Aug 8, 2025&lt;/em&gt;
