@@ -5,15 +5,23 @@
     <description>Personal blog and photo galleries</description>
     <link>https://jackratner.com</link>
     <atom:link href="https://jackratner.com/feed.xml" rel="self" type="application/rss+xml" />
-    <lastBuildDate>Fri, 22 Aug 2025 01:39:37 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 22 Aug 2025 01:41:06 GMT</lastBuildDate>
     <language>en-us</language>
     <generator>Custom Static Site Generator</generator>
     
     <item>
+      <title>Photo Gallery: Desktops</title>
+      <link>https://jackratner.com/photos/desktops</link>
+      <guid>https://jackratner.com/photos/desktops</guid>
+      <pubDate>Fri, 22 Aug 2025 01:41:03 GMT</pubDate>
+      <description>New photo gallery with 15 images.</description>
+      <category>gallery</category>
+    </item>
+    <item>
       <title>Making this site with Claude Code</title>
       <link>https://jackratner.com/blog/01-making-this-site-with-claude-code</link>
       <guid>https://jackratner.com/blog/01-making-this-site-with-claude-code</guid>
-      <pubDate>Fri, 22 Aug 2025 01:36:43 GMT</pubDate>
+      <pubDate>Fri, 22 Aug 2025 01:41:03 GMT</pubDate>
       <description>&lt;h1&gt;Making this site with Claude Code&lt;/h1&gt;
 
 &lt;p&gt;&lt;em&gt;Last updated Aug 8, 2025&lt;/em&gt;
@@ -26,14 +34,6 @@
 
 &lt;p&gt;To achieve my goals I decided to avoid w...</description>
       <category>blog</category>
-    </item>
-    <item>
-      <title>Photo Gallery: Desktops</title>
-      <link>https://jackratner.com/photos/desktops</link>
-      <guid>https://jackratner.com/photos/desktops</guid>
-      <pubDate>Wed, 20 Aug 2025 16:53:14 GMT</pubDate>
-      <description>New photo gallery with 15 images.</description>
-      <category>gallery</category>
     </item>
   </channel>
 </rss>
