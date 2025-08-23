@@ -1,0 +1,5 @@
+published_at: 2025-08-21 11:00PM EDT
+dependencies:
+  - ./eymo/eymo_wasm.js
+  - ./eymo/eymo_wasm_bg.wasm
+additional_html: ./eymo.html

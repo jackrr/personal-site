@@ -9,6 +9,8 @@ interface ParsedMarkdown {
   slug: string;
   lastUpdated?: Date;
   publishedAt?: Date;
+  dependencies?: string[];
+  additionalHtml?: string;
 }
 
 interface GalleryMeta {
@@ -20,10 +22,29 @@ class SimpleYamlParser {
   static parseSimple(yamlContent: string): Record<string, any> {
     const result: Record<string, any> = {};
     const lines = yamlContent.split('\n');
+    let currentArray: string[] = [];
+    let currentArrayKey = '';
     
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       const trimmed = line.trim();
+      
       if (trimmed && !trimmed.startsWith('#')) {
+        // Handle array continuation
+        if (trimmed.startsWith('- ')) {
+          if (currentArrayKey) {
+            currentArray.push(trimmed.substring(2).trim());
+          }
+          continue;
+        }
+        
+        // Finalize any ongoing array
+        if (currentArrayKey && currentArray.length > 0) {
+          result[currentArrayKey] = [...currentArray];
+          currentArray = [];
+          currentArrayKey = '';
+        }
+        
         const colonIndex = trimmed.indexOf(':');
         if (colonIndex > 0) {
           const key = trimmed.substring(0, colonIndex).trim();
@@ -32,11 +53,20 @@ class SimpleYamlParser {
           // Handle date parsing for published_at
           if (key === 'published_at') {
             result[key] = new Date(value);
+          } else if (value === '' || value === null) {
+            // This might be the start of an array
+            currentArrayKey = key;
+            currentArray = [];
           } else {
             result[key] = value;
           }
         }
       }
+    }
+    
+    // Finalize any remaining array
+    if (currentArrayKey && currentArray.length > 0) {
+      result[currentArrayKey] = [...currentArray];
     }
     
     return result;
@@ -347,6 +377,34 @@ ${items.map(item => `    <item>
     this.parser.clearImagesToCopy();
   }
 
+  private copyProjectDependencies(projectSlug: string, dependencies: string[]) {
+    const projectSourceDir = join('content/projects');
+    const projectDestDir = join(this.distDir, 'projects');
+    
+    dependencies.forEach(dependency => {
+      // Handle relative paths starting with ./
+      const cleanDependency = dependency.startsWith('./') ? dependency.substring(2) : dependency;
+      const sourcePath = join(projectSourceDir, cleanDependency);
+      const destPath = join(projectDestDir, basename(cleanDependency));
+      
+      if (existsSync(sourcePath)) {
+        try {
+          // Ensure destination directory exists
+          const destDir = dirname(destPath);
+          if (!existsSync(destDir)) {
+            mkdirSync(destDir, { recursive: true });
+          }
+          copyFileSync(sourcePath, destPath);
+          console.log(`Copied dependency: ${sourcePath} -> ${destPath}`);
+        } catch (error) {
+          console.warn(`Warning: Could not copy dependency ${sourcePath} to ${destPath}: ${error}`);
+        }
+      } else {
+        console.warn(`Warning: Dependency not found: ${sourcePath}`);
+      }
+    });
+  }
+
   private createTemplate(title: string, content: string, cssPath = './styles.css', scriptPath = './script.js'): string {
     return `<!DOCTYPE html>
 <html lang="en">
@@ -505,8 +563,19 @@ ${items.map(item => `    <item>
     mkdirSync(join(this.distDir, 'projects'), { recursive: true });
     
     projects.forEach(project => {
-      const html = this.createTemplate(project.title, project.content, '../styles.css', '../script.js');
+      // Append additional HTML to content if it exists
+      let projectContent = project.content;
+      if (project.additionalHtml) {
+        projectContent += '\n\n' + project.additionalHtml;
+      }
+      
+      const html = this.createTemplate(project.title, projectContent, '../styles.css', '../script.js');
       writeFileSync(join(this.distDir, 'projects', `${project.slug}.html`), html);
+      
+      // Copy dependencies if they exist
+      if (project.dependencies && project.dependencies.length > 0) {
+        this.copyProjectDependencies(project.slug, project.dependencies);
+      }
     });
   }
 
@@ -1443,8 +1512,49 @@ ${items.map(item => `    <item>
       .map(file => {
         const slug = basename(file, '.md');
         const outputPath = `dist/projects/${slug}.html`;
-        return this.parser.parseFile(join(projectsDir, file), outputPath);
-      });
+        const parsed = this.parser.parseFile(join(projectsDir, file), outputPath);
+        
+        // Read metadata from yaml file
+        const metaPath = join(projectsDir, `${slug}.meta.yaml`);
+        let publishedAt: Date | undefined;
+        let dependencies: string[] | undefined;
+        let additionalHtml: string | undefined;
+        
+        if (existsSync(metaPath)) {
+          try {
+            const metaContent = readFileSync(metaPath, 'utf-8');
+            const meta = SimpleYamlParser.parseSimple(metaContent);
+            publishedAt = meta.published_at;
+            dependencies = meta.dependencies;
+            
+            // Read additional HTML file if specified
+            if (meta.additional_html) {
+              const cleanPath = meta.additional_html.startsWith('./') ? meta.additional_html.substring(2) : meta.additional_html;
+              const additionalHtmlPath = join(projectsDir, cleanPath);
+              
+              if (existsSync(additionalHtmlPath)) {
+                try {
+                  additionalHtml = readFileSync(additionalHtmlPath, 'utf-8');
+                } catch (error) {
+                  console.warn(`Could not read additional HTML file for project ${slug}: ${additionalHtmlPath}`, error);
+                }
+              } else {
+                console.warn(`Additional HTML file not found for project ${slug}: ${additionalHtmlPath}`);
+              }
+            }
+          } catch (error) {
+            console.warn(`Could not parse metadata for project ${slug}:`, error);
+          }
+        }
+        
+        return {
+          ...parsed,
+          publishedAt: publishedAt || this.getFileDate(join(projectsDir, file)),
+          dependencies,
+          additionalHtml
+        };
+      })
+      .sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0)); // Most recent first
     
     return files;
   }
@@ -1473,6 +1583,14 @@ ${items.map(item => `    <item>
     const projects = this.getProjects();
     projects.forEach(project => {
       expectedFiles.add(`projects/${project.slug}.html`);
+      
+      // Include project dependencies
+      if (project.dependencies) {
+        project.dependencies.forEach(dependency => {
+          const cleanDependency = dependency.startsWith('./') ? dependency.substring(2) : dependency;
+          expectedFiles.add(`projects/${basename(cleanDependency)}`);
+        });
+      }
     });
     
     // Photo galleries

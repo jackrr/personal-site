@@ -40,6 +40,9 @@ It is expected that the agent will create and manage a build process to translat
   - metadata for the post will live at `./content/blog/:post-name.meta.yaml`
 - Each project at `/projects/:project-name`
   - `:project-name` in the URL refers to a specific project with content at `./content/projects/:project-name.md`
+  - metadata for the project will live at `./content/projects/:project-name.meta.yaml`
+    - if metadata contains a `dependencies` field, the files listed should be copied as-is to the same relative location of the generated html file for the project
+	- if metadata contains an `additional_html` field, append the contents of the referenced file to the bottom of the page contents of the generated html file
 - A dark/light theme toggle that uses device settings for the default
 - A Github action to run the static site build step on every push to the `main` branch
 - Site about page at `/about-this-site`, with an "About" link in the footer
