@@ -76,6 +76,7 @@ class SimpleYamlParser {
 class SimpleMarkdownParser {
   private imagesToCopy: Array<{source: string, dest: string, relativePath: string}> = [];
   private codeBlockPlaceholders: Map<string, string> = new Map();
+  private htmlBlockPlaceholders: Map<string, string> = new Map();
 
   parse(markdown: string, sourceDir: string, outputPath: string): string {
     let result = markdown
@@ -91,6 +92,26 @@ class SimpleMarkdownParser {
         if (cleanSrc.startsWith('./')) {
           const imageRelativePath = cleanSrc.substring(2); // Remove ./
           const sourcePath = join(sourceDir, imageRelativePath);
+          
+          // Check if the file is an HTML file
+          if (extname(imageRelativePath).toLowerCase() === '.html') {
+            // Include the HTML file contents directly
+            if (existsSync(sourcePath)) {
+              try {
+                const htmlContent = readFileSync(sourcePath, 'utf-8');
+                // Use placeholder to protect HTML from paragraph processing
+                const placeholder = `ĦĦĦHTMLBLOCK${Date.now()}X${Math.random().toString(36).substr(2, 9)}ĦĦĦ`;
+                this.htmlBlockPlaceholders.set(placeholder, htmlContent);
+                return placeholder;
+              } catch (error) {
+                console.warn(`Warning: Could not read HTML file ${sourcePath}: ${error}`);
+                return `<!-- Error: Could not include HTML file: ${imageRelativePath} -->`;
+              }
+            } else {
+              console.warn(`Warning: HTML file not found: ${sourcePath}`);
+              return `<!-- Error: HTML file not found: ${imageRelativePath} -->`;
+            }
+          }
           
           // Flatten directory structure for assets - use only the filename
           const imageName = basename(imageRelativePath);
@@ -201,6 +222,14 @@ class SimpleMarkdownParser {
         result = result.replace(new RegExp(placeholder, 'g'), content);
       }
       this.codeBlockPlaceholders.clear();
+    }
+
+    // Restore HTML block placeholders
+    if (this.htmlBlockPlaceholders) {
+      for (const [placeholder, content] of this.htmlBlockPlaceholders) {
+        result = result.replace(new RegExp(placeholder, 'g'), content);
+      }
+      this.htmlBlockPlaceholders.clear();
     }
 
     // Clean up paragraph tags around pre blocks

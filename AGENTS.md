@@ -17,6 +17,7 @@ It is expected that the agent will create and manage a build process to translat
 - Keep `./README.md` up to date with a high-level implementation overview of how the build process works
 - All changes should be made on git feature branches. DO NOT PUSH TO `main` branch.
 - Open pull requests to `main` for any changes that are ready.
+- Whenever making a change, add a brief summary of it to the top of `CHANGELOG.md`
 
 ## Features
 
