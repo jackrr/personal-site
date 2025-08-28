@@ -16,13 +16,13 @@ I first developed a rough vision for the website in my head. I knew I wanted a b
 
 I then encoded this "vision" into some instructions and guidelines in [`AGENTS.md`](https://github.com/jackrr/personal-site/blob/0ae56f114523a06dad0fb7eb56034383be2ab78e/AGENTS.md). This document has hardly changed since I first wrote it.
 
-I was blown away by the first iteration it put out. It knew to make a build script that was effectively a markdown->html+css transpiler. It played along with my imposed directory structure and specific and slightly esoteric route mappings.
+I was blown away by the first iteration it put out. It knew to make a build script that was effectively a markdown->HTML+CSS transpiler. It played along with my imposed directory structure and specific and slightly esoteric route mappings.
 
 ### Photo gallery
 
 The gallery feature was skipped in the first pass from Claude. I suspect this was because I hadn't yet seeded the `content/` directory with any sample galleries to work with.
 
-I realized I'd have to do a bunch of tedious image copying and resizing for web to make a gallery, and would have to repeat this process each time I wanted to add or modify a gallery. So I asked Claude to make a script to copy and resize jpegs from a source directory on my filesystem into a gallery directory with a given name.
+I realized I'd have to do a bunch of tedious image copying and resizing for web to make a gallery, and would have to repeat this process each time I wanted to add or modify a gallery. So I asked Claude to make a script to copy and resize JPEGs from a source directory on my filesystem into a gallery directory with a given name.
 
 The first pass was SO close, except for one issue...
 
@@ -96,6 +96,6 @@ I blame this class of issue on the high-level decision to implement a novel mark
 
 ## Overall takeaways
 
-I'm quite impressed with the product it built. Yes it looks a little tacky. Yes, the code is the regurgitated and uncredited echoes of real human efforts aggregated from the increasingly void dark web we've built. Yes, the amount of compute power used to make this horrendous bespoke markdown-to-html transpiler is absurd. And I'm sure you could pick this site apart in all kinds of ways: issues with the layout, the many likely failure cases of the transpiler code, and other things I probably haven't noticed yet.
+I'm quite impressed with the product it built. Yes it looks a little tacky. Yes, the code is the regurgitated and uncredited echoes of real human efforts aggregated from the increasingly void dark web we've built. Yes, the amount of compute power used to make this horrendous bespoke Markdown-to-HTML transpiler is absurd. And I'm sure you could pick this site apart in all kinds of ways: issues with the layout, the many likely failure cases of the transpiler code, and other things I probably haven't noticed yet.
 
 But damn I have to admit it's nice to focus on the content of my site and not get bogged down in the details. Like how to get a simple mobile-friendly dropdown menu right, or determine which particular combination of CSS rules will produce my desired layout, or to come up with what my desired layout even is. And it only took a few hours of my time to "build" it.

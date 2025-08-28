@@ -1,5 +1,7 @@
 # Making a container host with NixOS on a Raspberry Pi
 
+_Last updated August 28, 2025_
+
 Tired of deploying all your stuff to cloud services? Clicking through dashboards and proprietary business terms to abstract over basically the same things?
 
 I sure was. So I decided to run my toy projects on my own computer, at home. And expose that computer to the web.
@@ -10,12 +12,12 @@ I sure was. So I decided to run my toy projects on my own computer, at home. And
 - A micro SD card 
 - A micro SD card USB adapter (to flash the NixOS image)
 - External keyboard
-- Monitor w/ HDMI port 🖥
+- Monitor with HDMI port 🖥
 - Micro HDMI cable to HDMI (to connect the Pi to your monitor🖥
 
 🍓 You can use something else, but the NixOS installation instructions will likely vary
 
-🖥 There's probably a way to do this without a monitor, but I felt too new to nix to cross-compile the Pi's nix configuration my x86 laptop to target the arm64 Pi (at least I think this is what one would need to do)
+🖥 There's probably a way to do this without a monitor. However, I felt too new to nix to cross-compile the Pi's nix configuration my x86 laptop to target the ARM64 Pi (at least I think this is what one would need to do)
 
 ## Putting NixOS on a Pi
 
@@ -49,7 +51,7 @@ This will generate a file `/etc/modprobe.d/brcmfmac.conf` with the contents `opt
 
 ## Setting up a container runtime
 
-Once the Pi is online and you have a working iteration loop with `nixos-rebuild`, it's time to set up [podman](https://podman.io/). I chose podman instead of [docker](https://www.docker.com/) because it can use systemctl as the daemon to manage running containers, rather than a separate orchestrator like docker's engine. I updated my config following the [nix wiki docs for podman](https://nixos.wiki/wiki/Podman). Let's say you want to host [hello world](https://hub.docker.com/r/crccheck/hello-world/) on your machine, you would want your `/etc/nixos/configuration.nix` to have the following:
+Once the Pi is online and you have a working iteration loop with `nixos-rebuild`, it's time to set up [podman](https://podman.io/). I chose podman instead of [docker](https://www.docker.com/) because it can use systemctl as the daemon to manage running containers, rather than a separate orchestrator like docker engine. I updated my config following the [nix wiki docs for podman](https://nixos.wiki/wiki/Podman). Let's say you want to host [hello world](https://hub.docker.com/r/crccheck/hello-world/) on your machine, you would want your `/etc/nixos/configuration.nix` to have the following:
 
 ```
   virtualisation = {
@@ -93,9 +95,9 @@ When I ran the above command, I saw a restart loop occurring. The log from the c
 
 > WARNING: image platform (linux/amd64) does not match the expected platform (linux/arm64)
 
-Some searching around led me to realize I needed to build my app to specifically run on the arm64 CPU architecture. I wanted to avoid adding docker runtime and depending on my Pi as a build machine, so I needed to figure out how to make an arm64-compatible image on my amd64 dev machine.
+Some searching around led me to realize I needed to build my app to specifically run on the ARM64 CPU architecture. I wanted to avoid adding docker runtime and depending on my Pi as a build machine, so I needed to figure out how to make an ARM64-compatible image on my AMD64 dev machine.
 
-I still have docker on my main dev machine, so my path to resolution was [docker's "Multi-platform builds"](https://docs.docker.com/build/building/multi-platform/). I installed QEMU on my host (on Fedora linux as simple as running `sudo dnf install qemu-user-static`). I also needed to switch to `containerd` layer caching by following [these instructions](https://docs.docker.com/engine/storage/containerd/). I then watched the paint dry as I rebuilt the container leveraging QEMU eumulation:
+I still have docker on my main dev machine, so my path to resolution was [docker's "Multi-platform builds"](https://docs.docker.com/build/building/multi-platform/). I installed QEMU on my host (on Fedora it's simple as running `sudo dnf install qemu-user-static`). I also needed to switch to `containerd` layer caching by following [these instructions](https://docs.docker.com/engine/storage/containerd/). I then watched the paint dry as I rebuilt the container leveraging QEMU emulation:
 
 ```
 docker buildx build --platform linux/amd64,linux/arm64 .
@@ -107,7 +109,7 @@ Be patient, it took a good half hour to build the emulated linux/arm64 on my mac
 
 Now there's a server running on the pi, but it's not exposed to the wider internet.
 
-I'm not a genius at devops, particularly networking stack stuff. Don't get me wrong, I'm good enough to stand things up and be dangerous. But I'm paranoid of introducing massive attack vectors to my home WiFi. But I guess not paranoid enough to scrap this project altogether.
+I'm not a genius at devops, particularly networking stack stuff. Don't get me wrong, I'm good enough to stand things up and be dangerous. But I'm paranoid of introducing massive attack vectors to my home wifi. But I guess not paranoid enough to scrap this project altogether.
 
 To mitigate these fears and avoid standing up something more robust on my pi (looking at you, [k3s](https://k3s.io/)), I decided to use [cloudflared](https://github.com/cloudflare/cloudflared) to manage all networking through Cloudflare. 💵
 
@@ -216,11 +218,11 @@ You can also use cloudflared to expose ssh access. Update `configuration.nix` to
 
 You'll need to add another CNAME record mapping `mypi.yourdomain.com` to `TUNNEL_ID.cfargotunnel.com`.
 
-There are a variety of ways to [establish a ssh connection from your client](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/use-cases/ssh/) (your dev machnine). Most seemed rather boilerplate-y, so I settled on [the classic workflow documented here](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/use-cases/ssh/ssh-cloudflared-authentication/).
+There are a variety of ways to [establish a ssh connection from your client](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/use-cases/ssh/) (your dev machine). Most seemed rather boilerplate-y, so I settled on [the classic workflow documented here](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/use-cases/ssh/ssh-cloudflared-authentication/).
 
 ### Increase network memory limits
 
-Cloudflared uses the [`quic`](https://en.wikipedia.org/wiki/QUIC) protocol to communicate with Cloudflare's servers. The memory requirements to use it exceed the default limits configured with NixOS (at least at the time of this writing). If you see warnings about memory limits in the cloudflared logs (use `journalctl -u cloudflared-{STUFF}.service` -- use tab completion or run `systemctl | grep cloudflared` to find the exact service), add the following to your nix configuration to increase these limits:
+Cloudflared uses the [`quic`](https://en.wikipedia.org/wiki/QUIC) protocol to communicate with Cloudflare's servers. The memory requirements to use it exceed the default limits configured with NixOS (at least at the time of this writing). If you see warnings about memory limits in the cloudflared logs (use `journalctl -u cloudflared-{STUFF}.service` - use tab completion or run `systemctl | grep cloudflared` to find the exact service), add the following to your nix configuration to increase these limits:
 
 ```
   ...
