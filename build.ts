@@ -76,6 +76,7 @@ class SimpleYamlParser {
 class SimpleMarkdownParser {
   private imagesToCopy: Array<{source: string, dest: string, relativePath: string}> = [];
   private codeBlockPlaceholders: Map<string, string> = new Map();
+  private inlineCodePlaceholders: Map<string, string> = new Map();
   private htmlBlockPlaceholders: Map<string, string> = new Map();
 
   parse(markdown: string, sourceDir: string, outputPath: string): string {
@@ -141,7 +142,12 @@ class SimpleMarkdownParser {
         this.codeBlockPlaceholders.set(placeholder, `<pre><code>${content}</code></pre>`);
         return placeholder;
       })
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/`([^`]+)`/g, (match, content) => {
+        // Use placeholder to protect inline code from formatting processing
+        const placeholder = `ĦĦĦINLINECODE${Date.now()}X${Math.random().toString(36).substr(2, 9)}ĦĦĦ`;
+        this.inlineCodePlaceholders.set(placeholder, `<code>${content}</code>`);
+        return placeholder;
+      })
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/__(.+?)__/g, '<strong>$1</strong>')
@@ -222,6 +228,14 @@ class SimpleMarkdownParser {
         result = result.replace(new RegExp(placeholder, 'g'), content);
       }
       this.codeBlockPlaceholders.clear();
+    }
+
+    // Restore inline code placeholders
+    if (this.inlineCodePlaceholders) {
+      for (const [placeholder, content] of this.inlineCodePlaceholders) {
+        result = result.replace(new RegExp(placeholder, 'g'), content);
+      }
+      this.inlineCodePlaceholders.clear();
     }
 
     // Restore HTML block placeholders
