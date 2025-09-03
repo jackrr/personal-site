@@ -24,3 +24,4 @@ It looked kinda like this:
 2. Do another thing
 3. Also this thing
 
+[Architecture overview](https://github.com/jackrr/eymo/blob/main/docs/overview.md)
