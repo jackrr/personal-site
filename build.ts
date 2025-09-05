@@ -331,7 +331,7 @@ class StaticSiteBuilder {
         type: 'blog',
         title: post.title,
         slug: post.slug,
-        url: `/blog/${post.slug}`,
+        url: `/updates/${post.slug}`,
         content: post.content.substring(0, 500) + '...',
         date: post.publishedAt || post.lastUpdated || new Date(),
         pubDate: post.publishedAt || existingPubDates.get(`/blog/${post.slug}`) || new Date()
