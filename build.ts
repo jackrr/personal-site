@@ -254,16 +254,39 @@ class SimpleMarkdownParser {
 
   parseFile(filePath: string, outputPath: string = ''): ParsedMarkdown {
     const content = readFileSync(filePath, 'utf-8');
-    const lines = content.split('\n');
+    const sourceDir = dirname(filePath);
+    const slug = basename(filePath, '.md');
+    
+    // Check for YAML frontmatter
+    let frontmatter: Record<string, any> = {};
+    let markdownContent = content;
+    
+    if (content.startsWith('---\n')) {
+      const frontmatterEnd = content.indexOf('\n---\n', 4);
+      if (frontmatterEnd !== -1) {
+        const frontmatterContent = content.slice(4, frontmatterEnd);
+        markdownContent = content.slice(frontmatterEnd + 5);
+        
+        try {
+          frontmatter = SimpleYamlParser.parseSimple(frontmatterContent);
+        } catch (error) {
+          console.warn(`Could not parse frontmatter for ${filePath}:`, error);
+        }
+      }
+    }
+    
+    const lines = markdownContent.split('\n');
     const firstLine = lines[0];
     const title = firstLine.startsWith('# ') ? firstLine.substring(2) : basename(filePath, '.md');
-    const slug = basename(filePath, '.md');
-    const sourceDir = dirname(filePath);
     
     return {
       title,
-      content: this.parse(content, sourceDir, outputPath),
-      slug
+      content: this.parse(markdownContent, sourceDir, outputPath),
+      slug,
+      lastUpdated: frontmatter.last_updated ? new Date(frontmatter.last_updated) : undefined,
+      publishedAt: frontmatter.published_at ? new Date(frontmatter.published_at) : undefined,
+      dependencies: frontmatter.dependencies,
+      additionalHtml: frontmatter.additional_html
     };
   }
 
@@ -1518,23 +1541,28 @@ ${items.map(item => `    <item>
         const outputPath = `dist/updates/${slug}.html`;
         const parsed = this.parser.parseFile(join(blogDir, file), outputPath);
         
-        // Read metadata from yaml file
-        const metaPath = join(blogDir, `${slug}.meta.yaml`);
-        let publishedAt: Date | undefined;
+        // Use frontmatter data as primary source, fallback to .meta.yaml file
+        let publishedAt: Date | undefined = parsed.publishedAt;
+        let lastUpdated: Date | undefined = parsed.lastUpdated;
         
-        if (existsSync(metaPath)) {
+        // Read metadata from adjacent yaml file as fallback
+        const metaPath = join(blogDir, `${slug}.meta.yaml`);
+        if (!publishedAt && existsSync(metaPath)) {
           try {
             const metaContent = readFileSync(metaPath, 'utf-8');
             const meta = SimpleYamlParser.parseSimple(metaContent);
             publishedAt = meta.published_at;
+            if (!lastUpdated) lastUpdated = meta.last_updated;
           } catch (error) {
             console.warn(`Could not parse metadata for ${slug}:`, error);
           }
         }
         
-        // Extract "Last updated" date from content as fallback
-        const lastUpdatedMatch = parsed.content.match(/_Last updated ([^_]+)_/);
-        const lastUpdated = lastUpdatedMatch ? new Date(lastUpdatedMatch[1]) : new Date(0);
+        // Extract "Last updated" date from content as final fallback
+        if (!lastUpdated) {
+          const lastUpdatedMatch = parsed.content.match(/_Last updated ([^_]+)_/);
+          lastUpdated = lastUpdatedMatch ? new Date(lastUpdatedMatch[1]) : new Date(0);
+        }
         
         return {
           ...parsed,
@@ -1558,21 +1586,22 @@ ${items.map(item => `    <item>
         const outputPath = `dist/projects/${slug}.html`;
         const parsed = this.parser.parseFile(join(projectsDir, file), outputPath);
         
-        // Read metadata from yaml file
-        const metaPath = join(projectsDir, `${slug}.meta.yaml`);
-        let publishedAt: Date | undefined;
-        let dependencies: string[] | undefined;
-        let additionalHtml: string | undefined;
+        // Use frontmatter data as primary source, fallback to .meta.yaml file
+        let publishedAt: Date | undefined = parsed.publishedAt;
+        let dependencies: string[] | undefined = parsed.dependencies;
+        let additionalHtml: string | undefined = parsed.additionalHtml;
         
-        if (existsSync(metaPath)) {
+        // Read metadata from adjacent yaml file as fallback
+        const metaPath = join(projectsDir, `${slug}.meta.yaml`);
+        if ((!publishedAt || !dependencies || !additionalHtml) && existsSync(metaPath)) {
           try {
             const metaContent = readFileSync(metaPath, 'utf-8');
             const meta = SimpleYamlParser.parseSimple(metaContent);
-            publishedAt = meta.published_at;
-            dependencies = meta.dependencies;
+            if (!publishedAt) publishedAt = meta.published_at;
+            if (!dependencies) dependencies = meta.dependencies;
             
-            // Read additional HTML file if specified
-            if (meta.additional_html) {
+            // Read additional HTML file if specified and not already loaded from frontmatter
+            if (!additionalHtml && meta.additional_html) {
               const cleanPath = meta.additional_html.startsWith('./') ? meta.additional_html.substring(2) : meta.additional_html;
               const additionalHtmlPath = join(projectsDir, cleanPath);
               
@@ -1588,6 +1617,22 @@ ${items.map(item => `    <item>
             }
           } catch (error) {
             console.warn(`Could not parse metadata for project ${slug}:`, error);
+          }
+        }
+        
+        // Handle additional HTML from frontmatter
+        if (parsed.additionalHtml && !additionalHtml) {
+          const cleanPath = parsed.additionalHtml.startsWith('./') ? parsed.additionalHtml.substring(2) : parsed.additionalHtml;
+          const additionalHtmlPath = join(projectsDir, cleanPath);
+          
+          if (existsSync(additionalHtmlPath)) {
+            try {
+              additionalHtml = readFileSync(additionalHtmlPath, 'utf-8');
+            } catch (error) {
+              console.warn(`Could not read additional HTML file for project ${slug}: ${additionalHtmlPath}`, error);
+            }
+          } else {
+            console.warn(`Additional HTML file not found for project ${slug}: ${additionalHtmlPath}`);
           }
         }
         
