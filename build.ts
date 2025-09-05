@@ -551,9 +551,14 @@ ${items.map(item => `    <item>
       <section class="recent-posts">
         <h2>Recent Blog Posts</h2>
         <ul>
-          ${recentPosts.map(post => `
-            <li><a href="/updates/${post.slug}">${post.title}</a></li>
-          `).join('')}
+          ${recentPosts.map(post => {
+            const dateStr = post.publishedAt ? 
+              `${(post.publishedAt.getMonth() + 1).toString()}/${post.publishedAt.getDate().toString()}/${post.publishedAt.getFullYear().toString().slice(-2)}` : 
+              '';
+            return `
+            <li><a href="/updates/${post.slug}">${post.title}${dateStr ? ` (${dateStr})` : ''}</a></li>
+          `;
+          }).join('')}
         </ul>
         <a href="/updates">View all posts →</a>
       </section>
@@ -602,9 +607,14 @@ ${items.map(item => `    <item>
       <h1>Blog Posts</h1>
       ${blogPosts.length > 0 ? `
         <ul>
-          ${blogPosts.map(post => `
-            <li><a href="/updates/${post.slug}">${post.title}</a></li>
-          `).join('')}
+          ${blogPosts.map(post => {
+            const dateStr = post.publishedAt ? 
+              `${(post.publishedAt.getMonth() + 1).toString()}/${post.publishedAt.getDate().toString()}/${post.publishedAt.getFullYear().toString().slice(-2)}` : 
+              '';
+            return `
+            <li><a href="/updates/${post.slug}">${post.title}${dateStr ? ` (${dateStr})` : ''}</a></li>
+          `;
+          }).join('')}
         </ul>
       ` : '<p>No blog posts available.</p>'}
     `;
@@ -619,7 +629,28 @@ ${items.map(item => `    <item>
     const blogPosts = this.getBlogPosts();
     
     blogPosts.forEach(post => {
-      const html = this.createTemplate(post.title, post.content, '../styles.css', '../script.js');
+      let postContent = post.content;
+      
+      // Add date footer if published date exists
+      if (post.publishedAt) {
+        const date = post.publishedAt;
+        const month = (date.getMonth() + 1).toString();
+        const day = date.getDate().toString();
+        const year = date.getFullYear();
+        const hours = date.getHours();
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        
+        const dateFooter = `
+        <div style="text-align: right; margin-top: 3rem; font-style: italic; color: var(--text-color); opacity: 0.8;">
+          Posted ${month}/${day}/${year} ${displayHours}:${minutes} ${ampm}
+        </div>`;
+        
+        postContent += dateFooter;
+      }
+      
+      const html = this.createTemplate(post.title, postContent, '../styles.css', '../script.js');
       writeFileSync(join(this.distDir, 'updates', `${post.slug}.html`), html);
     });
   }
