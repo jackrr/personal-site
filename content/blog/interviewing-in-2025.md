@@ -1,18 +1,22 @@
 ---
 published_at: 2025-11-10 1:15 PM
 ---
-# Interviewing for SWE Jobs in 2025
+# Interviewing for Senior Software Eng Roles in 2025
 
-After a couple of months of the grind I managed to land a new job (yay). My experience searching lined up with what I'd heard from friends that had recently been through the grind: it's hard to land a first interview and rejection rates are high throughout the funnel. Back when I last interviewed nearly four years ago, I had the luxury of a job market that heavily favored more experienced applicants like me and only interviewed with a couple of companies. I had the luxury of getting away with minimal prep and effort. To my current recollection I simply submitted an application, brought my honest self to a series of interviews, then found myself with an offer I was ready to take. Perhaps much of the detail is since lost or repressed. Regardless, this search was harder and I figured I'd try to document my reflections in the hopes that someone else (or just future me) find them helpful in their search.
+After a couple of months of the grind I managed to land a new job (yay). My experience searching lined up with what I'd heard from friends that had recently been through the grind: it's hard to land a first interview and rejection rates are high throughout the funnel.
 
-Ultimately, I think my success in landing a role I was quite happy with came down to the following components:
+Back when I last interviewed nearly four years ago, I had the luxury of a job market that heavily favored more experienced applicants like me and only interviewed with a couple of companies. I had the luxury of getting away with minimal prep and effort. To my current recollection I simply submitted an application, brought my honest self to a series of interviews, then found myself with an offer I was ready to take. Perhaps much of the detail is since lost or repressed.
+
+Regardless, this search was much harder. So I figured I'd try to document my reflections in the hopes that someone else (or just future me) find them helpful in their search.
+
+I think my success in landing offers came down to:
 
 - Cast a wide net for your "top of funnel"
 - Reflect on your past projects
 - Have a boilerplate strategy for system design interviews
 - Familiarize yourself with coding in a tight time window with an audience
 
-There's so much more to interviewing successfully than the above. I choose to focus on these topics as they either reflect contemporary takeaways of the current state of the market or felt particularly revelatory to me after going so long without being a candidate.
+There's so much more to interviewing successfully than the above. I choose to focus on these topics as they either contribute to contemporary discourse on the current state of the market or felt particularly revelatory to me after going so long without being a candidate.
 
 A quick disclaimer on my own context – I've been a [software engineer at startups for around 11 years](https://www.linkedin.com/in/jack-ratner-1359b45a/). I've held senior IC and manager roles for multiple years over that time. I suspect my past work experience helped with cold applications and first interview rates. I was primarily applying to "fullstack/product" Staff IC and team lead style roles at smaller startups (<= Series B).
 
