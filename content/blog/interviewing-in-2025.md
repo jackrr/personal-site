@@ -156,6 +156,7 @@ Interview readiness and job readiness are not the same thing. I learned this the
 
 ## Appendix A: My janky notes for system design format
 
+```
 1. Requirements!
 	1. Explore and identify implementation space
 		1. Confirm high-level requirements with interviewers!
@@ -186,6 +187,8 @@ Interview readiness and job readiness are not the same thing. I learned this the
 3. Design
 	1. Notable tools (storage, communication protocols)
 	2. Services
+```
+
 
 ## Appendix B: System design tips and reminders
 
