@@ -5,16 +5,16 @@ published_at: 2025-11-10 1:15 PM
 
 After a couple of months of the grind I managed to land a new job (yay). My experience searching lined up with what I'd heard from friends that had recently been through the grind: it's hard to land a first interview and rejection rates are high throughout the funnel.
 
-Back when I last interviewed nearly four years ago, I had the luxury of a job market that heavily favored more experienced applicants like me and only interviewed with a couple of companies. I had the luxury of getting away with minimal prep and effort. To my current recollection I simply submitted an application, brought my honest self to a series of interviews, then found myself with an offer I was ready to take. Perhaps much of the detail is since lost or repressed.
+Back when I last interviewed nearly four years ago, I had the luxury of a job market that heavily favored more experienced applicants like me and only interviewed with a couple of companies. I got away with minimal prep and effort. To my current recollection I simply submitted an application, brought my honest self to a series of interviews, then found myself with an offer I was ready to take. Perhaps much of the detail is since lost or repressed.
 
 Regardless, this search was much harder. So I figured I'd try to document my reflections in the hopes that someone else (or just future me) find them helpful in their search.
 
 I think my success in landing offers came down to:
 
-- Cast a wide net for your "top of funnel"
-- Reflect on your past projects
-- Have a boilerplate strategy for system design interviews
-- Familiarize yourself with coding in a tight time window with an audience
+- Casting a wide net for my "top of funnel"
+- Deliberately reflecting on my past work experience
+- Developing a boilerplate strategy for system design interviews
+- Re-familiarizing myself with coding in a tight time window with an audience
 
 There's so much more to interviewing successfully than the above. I choose to focus on these topics as they either contribute to contemporary discourse on the current state of the market or felt particularly revelatory to me after going so long without being a candidate.
 
