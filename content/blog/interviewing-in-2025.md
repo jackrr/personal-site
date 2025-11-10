@@ -52,7 +52,11 @@ That said, I think that for more senior roles (management, Senior/Staff/etc. IC)
 
 The kind recruiters at [Recurse Center](https://www.recurse.com/) (aside - do a batch it's great :) ) gave me the best application->first interview rates. Also the level of effort at this stage on my end was trivial. The RC recruiter suggested a company and role, I decided whether it appealed to me, and then they presumably did the same with the company on the other side. If it was a mutual fit I had a first interview. No cover letters, no sending follow up emails on the status of my application, and a turnaround time within a few days if not hours.
 
-I also landed an interview through a cold email from a recruiter internal to a company. The one firm-affiliated, cold email recruiter I chose to respond to rug-pulled the role on me. I think these firms tend to dangle a recent sexy looking role that was already filled then scuttle you to the contracts they are actually struggling to staff. Again, low sample size, but working with an internal recruiter left me with much more control than one of these staffing agencies. Unlike the agencies, the RC recruiters draw from a highly connected community for their employment pool so are incentivized to work transparently and fairly. They're also just humble and kind people! I recommend finding a recruiter you can trust or working with recruiters within a single company.
+I also landed an interview through a cold email from a recruiter internal to a company. 
+
+The one firm-affiliated, cold email recruiter I chose to respond to rug-pulled the role on me. I think these firms tend to dangle a recent sexy looking role that was already filled then scuttle you to the contracts they are actually struggling to staff.
+
+Again, low sample size, but working with an internal recruiter left me with much more control than one of these staffing agencies. Unlike the agencies, the RC recruiters draw from a highly connected community for their employment pool so are incentivized to work transparently and fairly. They're also just humble and kind people! I recommend finding a recruiter you can trust or working with recruiters within a single company.
 
 Most of my interviews involved recruiters, despite this being the area of least effort for me at the application stage. I landed my new job through the Recurse recruiters.
 
