@@ -1,4 +1,14 @@
+---
+published_at: 2025-09-01 1:00 PM EDT
+last_updated: 2025-11-18 3:45 PM EST
+---
 # Debugging iOS Safari on (Fedora) Linux
+
+## UPDATE - 2025-11
+
+This process is tedious and finicky. Save yourself the trouble and instead check out [eruda](/updates/woah-eruda).
+
+## Old post proceeds here...
 
 This is a quick one. I had some issues with this and Google rankings didn't do a great job putting me on the right path, so I figure a quick write up might prove useful to others in this situation.
 
