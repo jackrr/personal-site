@@ -3,12 +3,8 @@ import init, { State } from "./eymo_wasm.js";
 
 const sampleConfigs = {
   faceParty: {
-    label: "Face Party",
-    config: `leye: scale(4), saturate(1.2), brighten(1.4), spin(0.3), drift(150)
-reye: scale(4), saturate(1.2), brighten(1.4), spin(-0.5), drift(225, 225)
-mouth: copy_to(reye_region+1), scale(1.5), brighten(1.2), saturate(1.3)
-leye_region: swap_with(mouth+1), scale(1.5), brighten(1.2), saturate(1.3)
-`,
+    label: "Triclops",
+    config: `leye: reshape(0.9, 1.4, 1.5, 1.9), copy_to(forehead), saturate(1.2), translate(10, 0)`,
   },
   faces: {
     label: "Faces",
@@ -26,12 +22,8 @@ face: spin(2.5), drift(810, -82), scale(0.3)
 face: spin(1.8), drift(180, 76), scale(0.9)`,
   },
   swapFaceParts: {
-    label: "Tiled Monster",
-    config: `nose: scale(0.8), channels(0.8, 0.8, 1.2)
-mouth: flip(vertical), scale(1.6), copy_to(leye_region+1), brighten(1.2)
-reye_region: scale(1.6), swap_with(mouth+1), brighten(1.2)
-face: tile, flip(vertical)
-`,
+    label: "Mouth",
+    config: 'mouth: tile',
   },
   swapFaces: {
     label: "Swap Faces (2+ People)",
