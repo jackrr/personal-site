@@ -1,4 +1,3 @@
-console.log("Loading wasm...");
 import init, { State } from "./eymo_wasm.js";
 
 const sampleConfigs = {
@@ -49,6 +48,10 @@ function generateSampleButtons() {
   });
 }
 
+const isPortraitViewport = window.innerWidth < window.innerHeight;
+const paperWidthIn = 6;
+const paperHeightIn = 4;
+
 async function print(canvas) {
   const dataUrl = canvas.toDataURL("image/png", 1.0); // high quality
 
@@ -56,14 +59,18 @@ async function print(canvas) {
   img.src = dataUrl;
 
   img.onload = () => {
-    const printWindow = window.open("", "", `width=${canvas.width},height=${canvas.height}`);
+    const printWindow = window.open("", "", `width=${canvas.style.width},height=${canvas.style.height}`);
+		const widthIn = `${paperWidthIn}in`
+		const heightIn = `${paperHeightIn}in`
+
     printWindow.document.write(`
       <html>
       <head>
         <title>Print</title>
         <style>
+          @page {size: ${isPortraitViewport ? `${heightIn} ${widthIn}` : `${widthIn} ${heightIn}`}; }
           body { margin: 0; display: flex; justify-content: center; }
-          img { width: ${canvas.width}px; height: ${canvas.height}px; }
+          img { width: ${canvas.style.width}px; height: ${canvas.style.height}px; }
         </style>
       </head>
       <body><img src="${dataUrl}"></body>
@@ -76,6 +83,43 @@ async function print(canvas) {
   };
 }
 
+function scaleCanvas() {
+	const canvas = document.getElementById("canvas")
+
+	const dpi = 300;
+	const pixWidth = paperWidthIn * dpi;
+	const pixHeight = paperHeightIn * dpi;
+
+	// Set the resolution scale (2x for retina/high-DPI)
+	const scale = 2;
+
+	// Set the display size (CSS pixels)
+	let displayWidth = (isPortraitViewport ? pixHeight : pixWidth) / scale;
+	let displayHeight = (isPortraitViewport ? pixWidth : pixHeight) / scale;
+
+	// Get available viewport space (with some padding)
+	const padding = 40; // pixels of padding around canvas
+	const maxWidth = window.innerWidth - padding;
+	const maxHeight = window.innerHeight - padding;
+
+	// Calculate scale factor to fit within viewport
+	const widthScale = maxWidth / displayWidth;
+	const heightScale = maxHeight / displayHeight;
+	const fitScale = Math.min(widthScale, heightScale, 1); // Don't scale up, only down
+
+	// Apply the fit scale to display dimensions
+	displayWidth *= fitScale;
+	displayHeight *= fitScale;
+
+	// Set the canvas's internal size to 2x
+	canvas.width = displayWidth * scale;
+	canvas.height = displayHeight * scale;
+
+	// Set the canvas's display size via CSS
+	canvas.style.width = displayWidth + 'px';
+	canvas.style.height = displayHeight + 'px';
+}
+
 async function run() {
   console.log("Initializing wasm...");
 
@@ -86,6 +130,8 @@ async function run() {
 
   startButtonContainer.style.display = "none";
   loading.classList.add("visible");
+
+	scaleCanvas()
 
   try {
     await init();
