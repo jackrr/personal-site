@@ -1,0 +1,14 @@
+# Photoprism photo source configuration
+# Set PHOTOPRISM_URL and PHOTOPRISM_API_KEY environment variables (or in GitHub Actions secrets)
+
+# albums: list of Photoprism album UIDs to pull into the site
+# - uid: the album UID from Photoprism (visible in the album URL)
+# - slug: used as the directory name under content/photos/ and in the URL
+# - name: human-readable display name for the gallery
+# - description: (optional) shown on the gallery page
+
+albums:
+  # - uid: abc123def456
+  #   slug: iceland-2024
+  #   name: Iceland 2024
+  #   description: A trip through Iceland in the summer of 2024.

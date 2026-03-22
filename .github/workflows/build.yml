@@ -21,6 +21,12 @@ jobs:
     - name: Install dependencies
       run: bun install
     
+    - name: Fetch photos from Photoprism
+      env:
+        PHOTOPRISM_URL: ${{ secrets.PHOTOPRISM_URL }}
+        PHOTOPRISM_API_KEY: ${{ secrets.PHOTOPRISM_API_KEY }}
+      run: bun run fetch-photos
+
     - name: Build static site
       run: bun run build
     

@@ -7,7 +7,8 @@
     "build": "bun run build.ts",
     "dev": "bun run build.ts && bun run serve",
     "serve": "bun run server.ts",
-    "process-photos": "bun run process-photos.ts"
+    "process-photos": "bun run process-photos.ts",
+    "fetch-photos": "bun run fetch-photos.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

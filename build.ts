@@ -497,14 +497,30 @@ ${items.map(item => `    <item>
                     <a href="/" class="nav-link">Home</a>
                     <a href="/updates" class="nav-link">Blog</a>
                     <a href="/photos" class="nav-link">Photos</a>
-                    <button id="theme-toggle" class="nav-link theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+                    <div class="theme-selector" id="theme-selector">
+                        <button class="nav-link theme-toggle" id="theme-toggle" aria-label="Open theme menu" aria-haspopup="true" aria-expanded="false">theme</button>
+                        <div class="theme-menu" id="theme-menu" role="menu">
+                            <button class="theme-option" data-theme="desert" role="menuitem">Desert</button>
+                            <button class="theme-option" data-theme="slate" role="menuitem">Slate</button>
+                            <button class="theme-option" data-theme="rose" role="menuitem">Rose</button>
+                            <button class="theme-option" data-theme="crunch" role="menuitem">Crunch</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="nav-menu" id="nav-menu">
                 <a href="/" class="nav-link">Home</a>
                 <a href="/updates" class="nav-link">Blog</a>
                 <a href="/photos" class="nav-link">Photos</a>
-                <button id="theme-toggle-mobile" class="nav-link theme-toggle" aria-label="Toggle dark/light theme">🌓</button>
+                <div class="theme-selector" id="theme-selector-mobile">
+                    <button class="nav-link theme-toggle" id="theme-toggle-mobile" aria-label="Open theme menu" aria-haspopup="true" aria-expanded="false">theme</button>
+                    <div class="theme-menu theme-menu-mobile" id="theme-menu-mobile" role="menu">
+                        <button class="theme-option" data-theme="desert" role="menuitem">Desert</button>
+                        <button class="theme-option" data-theme="slate" role="menuitem">Slate</button>
+                        <button class="theme-option" data-theme="rose" role="menuitem">Rose</button>
+                        <button class="theme-option" data-theme="crunch" role="menuitem">Crunch</button>
+                    </div>
+                </div>
             </div>
         </nav>
     </header>
@@ -866,34 +882,36 @@ ${items.map(item => `    <item>
         box-sizing: border-box;
       }
 
-      :root {
-        --bg-color: #ffffff;
-        --text-color: #000000;
-        --link-color: #0066cc;
-        --border-color: #cccccc;
+      /* Desert: warm paper — default */
+      :root, [data-theme="desert"] {
+        --bg-color: #faf5e4;
+        --text-color: #433422;
+        --link-color: #9c5c26;
+        --border-color: #d8c5a0;
       }
 
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg-color: #1a1a1a;
-          --text-color: #ffffff;
-          --link-color: #4da6ff;
-          --border-color: #444444;
-        }
+      /* Slate: cool dark blue-grey */
+      [data-theme="slate"] {
+        --bg-color: #1a2332;
+        --text-color: #c4d3e0;
+        --link-color: #56b6e2;
+        --border-color: #2c3e52;
       }
 
-      [data-theme="dark"] {
-        --bg-color: #1a1a1a;
-        --text-color: #ffffff;
-        --link-color: #4da6ff;
-        --border-color: #444444;
+      /* Rose: soft pink */
+      [data-theme="rose"] {
+        --bg-color: #fff5f7;
+        --text-color: #2a1621;
+        --link-color: #be185d;
+        --border-color: #fbc9d7;
       }
 
-      [data-theme="light"] {
-        --bg-color: #ffffff;
-        --text-color: #000000;
-        --link-color: #0066cc;
-        --border-color: #cccccc;
+      /* Crunch: woodland national park */
+      [data-theme="crunch"] {
+        --bg-color: #f0e8d0;
+        --text-color: #2b1f0e;
+        --link-color: #3a6b35;
+        --border-color: #b8a474;
       }
 
       body {
@@ -902,6 +920,9 @@ ${items.map(item => `    <item>
         color: var(--text-color);
         background-color: var(--bg-color);
         transition: background-color 0.3s, color 0.3s;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
       }
 
       header {
@@ -982,10 +1003,79 @@ ${items.map(item => `    <item>
         font-size: 1rem;
       }
 
+      .theme-selector {
+        position: relative;
+      }
+
+      .theme-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        z-index: 2000;
+        min-width: 100px;
+      }
+
+      .theme-menu.open {
+        display: block;
+      }
+
+      .theme-option {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 1rem;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: filter 0.15s;
+      }
+
+      .theme-option:hover {
+        filter: brightness(0.9);
+      }
+
+      /* Each option is pre-styled in its own theme colors */
+      .theme-option[data-theme="desert"] {
+        background: #faf5e4;
+        color: #433422;
+      }
+
+      .theme-option[data-theme="slate"] {
+        background: #1a2332;
+        color: #c4d3e0;
+      }
+
+      .theme-option[data-theme="rose"] {
+        background: #fff5f7;
+        color: #2a1621;
+      }
+
+      .theme-option[data-theme="crunch"] {
+        background: #f0e8d0;
+        color: #2b1f0e;
+      }
+
+      .theme-menu-mobile {
+        position: static;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        border-top: 1px solid var(--border-color);
+      }
+
       main {
         max-width: 1200px;
         margin: 0 auto;
         padding: 0 1rem;
+        flex: 1;
+        width: 100%;
       }
 
       h1, h2, h3, h4 {
@@ -1274,10 +1364,20 @@ ${items.map(item => `    <item>
         }
       }
 
+      /* Override RC Scout widget link to match site theme */
+      .rc-scout__link:link, .rc-scout__link:visited {
+        color: var(--link-color) !important;
+      }
+
+      .rc-scout__link:hover, .rc-scout__link:active {
+        color: var(--link-color) !important;
+        opacity: 0.75;
+      }
+
       /* Footer Styles */
       footer {
-        margin-top: 4rem;
-        padding: 2rem 1rem;
+        margin-top: 2rem;
+        padding: 0.75rem 1rem;
         border-top: 1px solid var(--border-color);
         background: var(--bg-color);
       }
@@ -1338,8 +1438,8 @@ ${items.map(item => `    <item>
         }
 
         footer {
-          margin-top: 2rem;
-          padding: 1.5rem 0.5rem;
+          margin-top: 1rem;
+          padding: 0.75rem 0.5rem;
         }
 
         .footer-content {
@@ -1424,38 +1524,59 @@ ${items.map(item => `    <item>
 
   buildScript() {
     const js = `
-      // Theme toggle functionality
-      const themeToggle = document.getElementById('theme-toggle');
-      const themeToggleMobile = document.getElementById('theme-toggle-mobile');
+      // Theme menu functionality
       const html = document.documentElement;
 
-      // Initialize theme based on system preference or stored preference
+      function applyTheme(theme) {
+        html.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        const label = theme.charAt(0).toUpperCase() + theme.slice(1);
+        document.querySelectorAll('.theme-toggle').forEach(btn => btn.textContent = label);
+      }
+
+      // Initialize theme
+      const validThemes = ['desert', 'slate', 'rose', 'crunch'];
       const savedTheme = localStorage.getItem('theme');
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      if (savedTheme) {
-        html.setAttribute('data-theme', savedTheme);
-      } else if (systemPrefersDark) {
-        html.setAttribute('data-theme', 'dark');
-      } else {
-        html.setAttribute('data-theme', 'light');
+      applyTheme(validThemes.includes(savedTheme) ? savedTheme : 'desert');
+
+      function setupThemeMenu(toggleId, menuId) {
+        const toggle = document.getElementById(toggleId);
+        const menu = document.getElementById(menuId);
+        if (!toggle || !menu) return;
+
+        toggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = menu.classList.contains('open');
+          // Close all open menus first
+          document.querySelectorAll('.theme-menu.open').forEach(m => {
+            m.classList.remove('open');
+            m.previousElementSibling?.setAttribute('aria-expanded', 'false');
+          });
+          if (!isOpen) {
+            menu.classList.add('open');
+            toggle.setAttribute('aria-expanded', 'true');
+          }
+        });
+
+        menu.querySelectorAll('.theme-option').forEach(btn => {
+          btn.addEventListener('click', () => {
+            applyTheme(btn.dataset.theme);
+            menu.classList.remove('open');
+            toggle.setAttribute('aria-expanded', 'false');
+          });
+        });
       }
 
-      function toggleTheme() {
-        const currentTheme = html.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
-        html.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-      }
+      setupThemeMenu('theme-toggle', 'theme-menu');
+      setupThemeMenu('theme-toggle-mobile', 'theme-menu-mobile');
 
-      if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
-      }
-      
-      if (themeToggleMobile) {
-        themeToggleMobile.addEventListener('click', toggleTheme);
-      }
+      // Close menus when clicking outside
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.theme-menu.open').forEach(m => {
+          m.classList.remove('open');
+          m.previousElementSibling?.setAttribute('aria-expanded', 'false');
+        });
+      });
 
       // Mobile navigation menu toggle
       const navToggle = document.getElementById('nav-toggle');
